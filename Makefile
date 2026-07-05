@@ -1,14 +1,17 @@
 SHELL := /bin/zsh
 
-.PHONY: help install-backend install-frontend db-schema backend frontend
+.PHONY: help setup install-backend install-frontend db-schema backend frontend
 
 help:
 	@printf "Available targets:\n"
+	@printf "  make setup             Install deps and apply schema\n"
 	@printf "  make install-backend   Install Python dependencies into .venv\n"
 	@printf "  make install-frontend  Install web dependencies\n"
 	@printf "  make db-schema         Apply api/schema.sql using DATABASE_URL from .env.local\n"
 	@printf "  make backend           Run the Flask API locally on port 5000\n"
 	@printf "  make frontend          Run the Vue app locally with Vite\n"
+
+setup: install-backend install-frontend db-schema
 
 install-backend:
 	python3 -m venv .venv
