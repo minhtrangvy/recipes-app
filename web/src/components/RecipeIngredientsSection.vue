@@ -95,11 +95,6 @@ function formatAmount(amount: number) {
 
 <template>
   <div class="section-card">
-    <div class="section-header">
-      <h3>Active version</h3>
-      <p>V{{ props.activeVersion.version_number }}</p>
-    </div>
-
     <form class="ingredient-form" @submit.prevent="$emit('add-ingredient')">
       <input
         :value="props.ingredientName"
@@ -154,6 +149,7 @@ function formatAmount(amount: number) {
       </datalist>
       <button
         type="submit"
+        class="icon-button"
         :aria-label="props.isSavingIngredient ? 'Saving ingredient' : 'Add ingredient'"
       >
         {{ props.isSavingIngredient ? "Saving..." : "➕" }}
@@ -237,7 +233,7 @@ function formatAmount(amount: number) {
                     </button>
                     <button
                       type="button"
-                      class="danger-button"
+                      class="icon-button danger-icon-button"
                       :disabled="props.deletingIngredientId !== ''"
                       :aria-label="
                         props.deletingIngredientId === ingredient.id
@@ -335,13 +331,6 @@ function formatAmount(amount: number) {
   border: 1px solid #d4c5b4;
 }
 
-.section-header {
-  display: flex;
-  justify-content: space-between;
-  gap: 16px;
-  align-items: center;
-}
-
 .ingredient-form {
   display: flex;
   gap: 12px;
@@ -389,10 +378,14 @@ button {
 }
 
 .icon-button {
-  padding: 4px 8px;
+  padding: 0;
   background: transparent;
   color: #6f5036;
-  border: 1px solid #a99987;
+  border: 0;
+}
+
+.danger-icon-button {
+  color: #8c2f1d;
 }
 
 .compact-button {

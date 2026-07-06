@@ -53,6 +53,7 @@ defineEmits<{
       />
       <button
         type="submit"
+        class="icon-button"
         :aria-label="props.isSavingInstruction ? 'Saving instruction' : 'Add instruction'"
       >
         {{ props.isSavingInstruction ? "Saving..." : "➕📄" }}
@@ -70,7 +71,7 @@ defineEmits<{
         <h4 v-if="instruction.title">{{ instruction.title }}</h4>
         <button
           type="button"
-          class="danger-button"
+          class="icon-button danger-icon-button"
           :disabled="props.deletingInstructionId !== ''"
           :aria-label="
             props.deletingInstructionId === instruction.id
@@ -130,7 +131,7 @@ defineEmits<{
                 </button>
                 <button
                   type="button"
-                  class="danger-button"
+                  class="icon-button danger-icon-button"
                   :disabled="props.deletingStepId !== ''"
                   :aria-label="
                     props.deletingStepId === step.id ? 'Deleting step' : 'Delete step'
@@ -210,6 +211,7 @@ defineEmits<{
         />
         <button
           type="submit"
+          class="icon-button"
           :aria-label="
             props.savingStepInstructionId === instruction.id ? 'Saving step' : 'Add step'
           "
@@ -308,15 +310,19 @@ button {
 }
 
 .icon-button {
-  padding: 4px 8px;
+  padding: 0;
   background: transparent;
   color: #6f5036;
-  border: 1px solid #a99987;
+  border: 0;
 }
 
 .compact-button {
   font-size: 12px;
   line-height: 1.2;
+}
+
+.danger-icon-button {
+  color: #8c2f1d;
 }
 
 .note-stack {

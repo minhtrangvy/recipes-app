@@ -774,10 +774,10 @@ button {
 }
 
 .icon-button {
-  padding: 4px 8px;
+  padding: 0;
   background: transparent;
   color: #6f5036;
-  border: 1px solid #a99987;
+  border: 0;
   cursor: pointer;
 }
 
@@ -786,7 +786,6 @@ button {
 }
 
 .danger-icon-button {
-  color: white;
-  border-color: #8c2f1d;
+  color: #8c2f1d;
 }
 </style>
