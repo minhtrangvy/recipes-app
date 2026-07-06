@@ -267,6 +267,15 @@ def update_ingredient(recipe_id, ingredient_id):
     return jsonify(result)
 
 
+@app.delete("/api/recipes/<recipe_id>/ingredients/<ingredient_id>")
+def delete_ingredient(recipe_id, ingredient_id):
+    error = recipe_queries.delete_ingredient(recipe_id, ingredient_id)
+    if error is not None:
+        return {"error": error}, 404
+
+    return "", 204
+
+
 @app.post("/api/recipes/<recipe_id>/ingredients/<ingredient_id>/notes")
 def create_ingredient_note(recipe_id, ingredient_id):
     payload = request.get_json(silent=True) or {}

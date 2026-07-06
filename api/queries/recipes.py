@@ -555,6 +555,36 @@ def update_ingredient(recipe_id, ingredient_id, name, amount, amount_type, group
     return {"ingredient": serialize_ingredient_row(ingredient)}, None
 
 
+def delete_ingredient(recipe_id, ingredient_id):
+    with get_connection() as connection:
+        with connection.cursor() as cursor:
+            cursor.execute(
+                """
+                delete from ingredients
+                where id = %s
+                    and exists (
+                        select 1
+                        from recipe_versions rv
+                        inner join recipes r on r.id = rv.recipe_id
+                        where rv.id = ingredients.recipe_version_id
+                            and rv.recipe_id = %s
+                            and rv.deleted_at is null
+                            and r.deleted_at is null
+                    )
+                returning id
+                """,
+                (ingredient_id, recipe_id),
+            )
+            deleted_ingredient = cursor.fetchone()
+
+            if deleted_ingredient is None:
+                return "ingredient not found"
+
+        connection.commit()
+
+    return None
+
+
 def create_instruction(recipe_id, title):
     with get_connection() as connection:
         with connection.cursor() as cursor:

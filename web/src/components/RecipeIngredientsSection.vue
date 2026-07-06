@@ -21,6 +21,7 @@ const props = defineProps<{
   editingIngredientIds: Record<string, boolean>;
   ingredientEditDrafts: Record<string, IngredientEditDraft>;
   savingIngredientId: string;
+  deletingIngredientId: string;
   showingIngredientNoteForms: Record<string, boolean>;
   ingredientNoteBodies: Record<string, string>;
   savingIngredientNoteId: string;
@@ -36,6 +37,7 @@ defineEmits<{
   (event: "update:ingredientGrouping", value: string): void;
   (event: "add-ingredient"): void;
   (event: "save-ingredient", ingredient: Ingredient): void;
+  (event: "remove-ingredient", ingredientId: string): void;
   (event: "cancel-edit", ingredientId: string): void;
   (event: "begin-edit", ingredient: Ingredient): void;
   (event: "show-note-form", ingredientId: string): void;
@@ -232,6 +234,23 @@ function formatAmount(amount: number) {
                       @click="$emit('begin-edit', ingredient)"
                     >
                       ✎
+                    </button>
+                    <button
+                      type="button"
+                      class="danger-button"
+                      :disabled="props.deletingIngredientId !== ''"
+                      :aria-label="
+                        props.deletingIngredientId === ingredient.id
+                          ? 'Deleting ingredient'
+                          : 'Delete ingredient'
+                      "
+                      @click="$emit('remove-ingredient', ingredient.id)"
+                    >
+                      {{
+                        props.deletingIngredientId === ingredient.id
+                          ? "Deleting..."
+                          : "🗑️"
+                      }}
                     </button>
                   </div>
                 </div>

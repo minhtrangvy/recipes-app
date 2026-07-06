@@ -10,6 +10,7 @@ import {
   createRecipeVersion,
   createStep,
   createStepNote,
+  deleteIngredient,
   deleteInstruction,
   deleteRecipe,
   deleteRecipeVersion,
@@ -42,6 +43,7 @@ const isLoading = ref(true);
 const isCreatingVersion = ref(false);
 const isSavingIngredient = ref(false);
 const savingIngredientId = ref("");
+const deletingIngredientId = ref("");
 const editingIngredientIds = ref<Record<string, boolean>>({});
 const ingredientEditDrafts = ref<
   Record<
@@ -176,6 +178,26 @@ async function saveIngredient(ingredient: Ingredient) {
       error instanceof Error ? error.message : "Unable to save ingredient";
   } finally {
     savingIngredientId.value = "";
+  }
+}
+
+async function removeIngredient(ingredientId: string) {
+  const recipeId = route.params.recipeId;
+  if (typeof recipeId !== "string") {
+    return;
+  }
+
+  deletingIngredientId.value = ingredientId;
+  errorMessage.value = "";
+
+  try {
+    await deleteIngredient(recipeId, ingredientId);
+    await loadRecipe();
+  } catch (error) {
+    errorMessage.value =
+      error instanceof Error ? error.message : "Unable to delete ingredient";
+  } finally {
+    deletingIngredientId.value = "";
   }
 }
 
@@ -650,6 +672,7 @@ onMounted(loadRecipe);
         :editing-ingredient-ids="editingIngredientIds"
         :ingredient-edit-drafts="ingredientEditDrafts"
         :saving-ingredient-id="savingIngredientId"
+        :deleting-ingredient-id="deletingIngredientId"
         :showing-ingredient-note-forms="showingIngredientNoteForms"
         :ingredient-note-bodies="ingredientNoteBodies"
         :saving-ingredient-note-id="savingIngredientNoteId"
@@ -662,6 +685,7 @@ onMounted(loadRecipe);
         @update:ingredient-grouping="ingredientGrouping = $event"
         @add-ingredient="addIngredient"
         @save-ingredient="saveIngredient"
+        @remove-ingredient="removeIngredient"
         @cancel-edit="cancelIngredientEdit"
         @begin-edit="beginIngredientEdit"
         @show-note-form="showIngredientNoteForm"

@@ -146,6 +146,16 @@ export async function updateIngredient(
   return parseResponse<{ ingredient: Ingredient }>(response);
 }
 
+export async function deleteIngredient(
+  recipeId: string,
+  ingredientId: string
+): Promise<void> {
+  const response = await fetch(`/api/recipes/${recipeId}/ingredients/${ingredientId}`, {
+    method: "DELETE",
+  });
+  await parseResponse(response);
+}
+
 export async function deleteRecipeVersion(
   recipeId: string,
   versionId: string
