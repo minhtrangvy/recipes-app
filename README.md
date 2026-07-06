@@ -2,6 +2,17 @@
 
 Minimal Flask + Vue recipe book scaffold for Vercel with Neon Postgres.
 
+## Local setup
+
+1. Put your local database values in `.env.local`.
+2. Run:
+
+```bash
+make setup
+make backend
+make frontend
+```
+
 ## Backend
 
 1. Create a virtualenv and install backend deps:
@@ -12,7 +23,7 @@ source .venv/bin/activate
 pip install -r api/requirements.txt
 ```
 
-2. Set `DATABASE_URL` from `.env.example`.
+2. Set `DATABASE_URL` from `.env.example` in `.env.local`.
 
 3. Apply the schema:
 
@@ -50,4 +61,4 @@ Vite proxies `/api` requests to `http://127.0.0.1:5000`.
 - `recipe_versions`
 - `ingredients`
 
-Ingredients currently only store their `recipe_version_id` so recipe versioning remains valid when ingredient fields are added later.
+Ingredients are attached to `recipe_version_id` and currently store a minimal `name` field so the active version can be edited in the UI.

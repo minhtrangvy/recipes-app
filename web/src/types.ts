@@ -21,6 +21,21 @@ export interface RecipeVersion {
   version_number: number;
   created_at: string;
   ingredient_count: number;
+  ingredients: Ingredient[];
+}
+
+export interface RecipeVersionSummary {
+  id: string;
+  recipe_id: string;
+  version_number: number;
+  created_at: string;
+}
+
+export interface Ingredient {
+  id: string;
+  recipe_version_id: string;
+  name: string;
+  created_at: string;
 }
 
 export interface RecipeDetail {

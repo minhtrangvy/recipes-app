@@ -37,5 +37,20 @@ create table if not exists recipe_versions (
 
 create table if not exists ingredients (
     id uuid primary key default gen_random_uuid(),
-    recipe_version_id uuid not null references recipe_versions(id) on delete cascade
+    recipe_version_id uuid not null references recipe_versions(id) on delete cascade,
+    name text not null,
+    created_at timestamptz not null default now()
 );
+
+alter table ingredients
+    add column if not exists name text;
+
+alter table ingredients
+    add column if not exists created_at timestamptz not null default now();
+
+update ingredients
+set name = 'ingredient'
+where name is null;
+
+alter table ingredients
+    alter column name set not null;

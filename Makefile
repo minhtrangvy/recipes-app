@@ -1,4 +1,5 @@
 SHELL := /bin/zsh
+ENV_RUN := python3 scripts/run_with_env.py .env.local
 
 .PHONY: help setup install-backend install-frontend db-schema backend frontend
 
@@ -7,7 +8,7 @@ help:
 	@printf "  make setup             Install deps and apply schema\n"
 	@printf "  make install-backend   Install Python dependencies into .venv\n"
 	@printf "  make install-frontend  Install web dependencies\n"
-	@printf "  make db-schema         Apply api/schema.sql using DATABASE_URL from .env.local\n"
+	@printf "  make db-schema         Apply api/schema.sql using values from .env.local\n"
 	@printf "  make backend           Run the Flask API locally on port 5000\n"
 	@printf "  make frontend          Run the Vue app locally with Vite\n"
 
@@ -21,10 +22,10 @@ install-frontend:
 	cd web && npm install
 
 db-schema:
-	set -a && source .env.local && set +a && psql "$$DATABASE_URL" -f api/schema.sql
+	$(ENV_RUN) psql '$$DATABASE_URL' -f api/schema.sql
 
 backend:
-	set -a && source .env.local && set +a && source .venv/bin/activate && flask --app api.index run --debug
+	$(ENV_RUN) .venv/bin/flask --app api.index run --debug
 
 frontend:
 	cd web && npm run dev

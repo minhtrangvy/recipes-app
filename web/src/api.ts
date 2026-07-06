@@ -1,8 +1,10 @@
 import type {
   CreateRecipePayload,
+  Ingredient,
   RecipeDetail,
   RecipeSummary,
   RecipeVersion,
+  RecipeVersionSummary,
 } from "./types";
 
 async function parseResponse<T>(response: Response): Promise<T> {
@@ -11,6 +13,10 @@ async function parseResponse<T>(response: Response): Promise<T> {
       | { error?: string }
       | null;
     throw new Error(body?.error || "Request failed");
+  }
+
+  if (response.status === 204) {
+    return undefined as T;
   }
 
   return response.json() as Promise<T>;
@@ -30,7 +36,7 @@ export async function fetchRecipe(recipeId: string): Promise<RecipeDetail> {
 
 export async function createRecipe(
   payload: CreateRecipePayload
-): Promise<{ recipe: RecipeSummary; version: RecipeVersion }> {
+): Promise<{ recipe: RecipeSummary; version: RecipeVersionSummary }> {
   const response = await fetch("/api/recipes", {
     method: "POST",
     headers: {
@@ -39,17 +45,44 @@ export async function createRecipe(
     body: JSON.stringify(payload),
   });
 
-  return parseResponse<{ recipe: RecipeSummary; version: RecipeVersion }>(
+  return parseResponse<{ recipe: RecipeSummary; version: RecipeVersionSummary }>(
     response
   );
 }
 
 export async function createRecipeVersion(
   recipeId: string
-): Promise<RecipeVersion> {
+): Promise<RecipeVersionSummary> {
   const response = await fetch(`/api/recipes/${recipeId}/versions`, {
     method: "POST",
   });
-  const data = await parseResponse<{ version: RecipeVersion }>(response);
+  const data = await parseResponse<{ version: RecipeVersionSummary }>(response);
   return data.version;
+}
+
+export async function createIngredient(
+  recipeId: string,
+  name: string
+): Promise<{ ingredient: Ingredient; active_version: RecipeVersionSummary }> {
+  const response = await fetch(`/api/recipes/${recipeId}/ingredients`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ name }),
+  });
+  return parseResponse<{
+    ingredient: Ingredient;
+    active_version: RecipeVersionSummary;
+  }>(response);
+}
+
+export async function deleteRecipeVersion(
+  recipeId: string,
+  versionId: string
+): Promise<void> {
+  const response = await fetch(`/api/recipes/${recipeId}/versions/${versionId}`, {
+    method: "DELETE",
+  });
+  await parseResponse(response);
 }
