@@ -1,24 +1,26 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from "vue";
-import { useRoute } from "vue-router";
-import { useRouter } from "vue-router";
+import { useRoute, useRouter } from "vue-router";
 
 import {
   applyImportDraft,
-  createIngredientNote,
-  createStepNote,
-  fetchImportPreview,
-  deleteRecipe,
-  deleteInstruction,
-  deleteStep,
   createIngredient,
+  createIngredientNote,
   createInstruction,
   createRecipeVersion,
   createStep,
+  createStepNote,
+  deleteInstruction,
+  deleteRecipe,
   deleteRecipeVersion,
+  deleteStep,
   fetchRecipe,
   updateIngredient,
 } from "../api";
+import RecipeImportReview from "../components/RecipeImportReview.vue";
+import RecipeIngredientsSection from "../components/RecipeIngredientsSection.vue";
+import RecipeInstructionsSection from "../components/RecipeInstructionsSection.vue";
+import RecipeVersionHistorySection from "../components/RecipeVersionHistorySection.vue";
 import type {
   Ingredient,
   ImportedIngredientDraft,
@@ -30,6 +32,7 @@ import type {
 
 const route = useRoute();
 const router = useRouter();
+
 const recipe = ref<RecipeDetail | null>(null);
 const errorMessage = ref("");
 const isLoading = ref(true);
@@ -52,6 +55,7 @@ const deletingVersionId = ref("");
 const isDeletingRecipe = ref(false);
 const ingredientName = ref("");
 const ingredientAmount = ref(1);
+const ingredientGrouping = ref("");
 const instructionTitle = ref("");
 const isSavingInstruction = ref(false);
 const deletingInstructionId = ref("");
@@ -65,7 +69,6 @@ const showingIngredientNoteForms = ref<Record<string, boolean>>({});
 const showingStepNoteForms = ref<Record<string, boolean>>({});
 const savingIngredientNoteId = ref("");
 const savingStepNoteId = ref("");
-const isLoadingImportPreview = ref(false);
 const isApplyingImportDraft = ref(false);
 const importDraft = ref<RecipeImportDraft | null>(null);
 
@@ -83,45 +86,6 @@ const amountTypes: IngredientAmountType[] = [
 const ingredientAmountType = ref<IngredientAmountType>(amountTypes[0]);
 
 const activeVersion = computed(() => recipe.value?.versions[0] ?? null);
-
-const groupedActiveIngredients = computed(() => {
-  const ingredients = activeVersion.value?.ingredients ?? [];
-  const groups = new Map<string, Ingredient[]>();
-
-  for (const ingredient of ingredients) {
-    const groupName = ingredient.grouping || "";
-    if (!groups.has(groupName)) {
-      groups.set(groupName, []);
-    }
-    groups.get(groupName)!.push(ingredient);
-  }
-
-  return Array.from(groups.entries()).map(([grouping, ingredientsInGroup]) => ({
-    grouping,
-    ingredients: ingredientsInGroup,
-  }));
-});
-
-function amountTypeLabel(amountType: IngredientAmountType) {
-  if (amountType === "weight_g") {
-    return "grams";
-  }
-
-  return amountType;
-}
-
-function formatAmount(amount: number) {
-  const fractionMap: Record<string, string> = {
-    "0.25": "1/4",
-    "0.33": "1/3",
-    "0.5": "1/2",
-    "0.67": "2/3",
-    "0.75": "3/4",
-  };
-
-  const rounded = amount.toFixed(2).replace(/0+$/, "").replace(/\.$/, "");
-  return fractionMap[rounded] || rounded;
-}
 
 async function loadRecipe() {
   const recipeId = route.params.recipeId;
@@ -156,11 +120,12 @@ async function addIngredient() {
       name,
       amount: ingredientAmount.value,
       amount_type: ingredientAmountType.value,
-      grouping: "",
+      grouping: ingredientGrouping.value.trim(),
     });
     ingredientName.value = "";
     ingredientAmount.value = 1;
     ingredientAmountType.value = amountTypes[0];
+    ingredientGrouping.value = "";
     await loadRecipe();
   } catch (error) {
     errorMessage.value =
@@ -424,26 +389,6 @@ async function removeRecipe() {
   }
 }
 
-async function loadImportPreview() {
-  const recipeId = route.params.recipeId;
-  if (typeof recipeId !== "string") {
-    return;
-  }
-
-  isLoadingImportPreview.value = true;
-  errorMessage.value = "";
-
-  try {
-    const response = await fetchImportPreview(recipeId);
-    importDraft.value = response.draft;
-  } catch (error) {
-    errorMessage.value =
-      error instanceof Error ? error.message : "Unable to preview import";
-  } finally {
-    isLoadingImportPreview.value = false;
-  }
-}
-
 function addDraftIngredient() {
   if (!importDraft.value) {
     return;
@@ -567,404 +512,80 @@ onMounted(loadRecipe);
         </div>
       </div>
 
-      <div v-if="importDraft" class="versions-card">
-        <div class="versions-header">
-          <h3>Import review</h3>
-          <button type="button" @click="addDraftIngredient">Add ingredient</button>
-        </div>
+      <RecipeImportReview
+        v-if="importDraft"
+        :import-draft="importDraft"
+        :amount-types="amountTypes"
+        :is-applying-import-draft="isApplyingImportDraft"
+        @add-ingredient="addDraftIngredient"
+        @remove-ingredient="removeDraftIngredient"
+        @add-instruction="addDraftInstruction"
+        @remove-instruction="removeDraftInstruction"
+        @add-step="addDraftStep"
+        @remove-step="removeDraftStep"
+        @apply="applyDraft"
+        @cancel="importDraft = null"
+      />
 
-        <div
-          v-for="(ingredient, ingredientIndex) in importDraft.ingredients"
-          :key="`ingredient-${ingredientIndex}`"
-          class="draft-row"
-        >
-          <input v-model="ingredient.name" type="text" placeholder="Ingredient name" />
-          <input
-            v-model.number="ingredient.amount"
-            min="0.01"
-            step="0.01"
-            type="number"
-          />
-          <select v-model="ingredient.amount_type">
-            <option
-              v-for="amountType in amountTypes"
-              :key="`draft-amount-${amountType}`"
-              :value="amountType"
-            >
-              {{ amountTypeLabel(amountType) }}
-            </option>
-          </select>
-          <button
-            type="button"
-            class="danger-button"
-            @click="removeDraftIngredient(ingredientIndex)"
-          >
-            Remove
-          </button>
-        </div>
+      <RecipeIngredientsSection
+        v-if="activeVersion"
+        :active-version="activeVersion"
+        :amount-types="amountTypes"
+        :ingredient-name="ingredientName"
+        :ingredient-amount="ingredientAmount"
+        :ingredient-amount-type="ingredientAmountType"
+        :ingredient-grouping="ingredientGrouping"
+        :is-saving-ingredient="isSavingIngredient"
+        :editing-ingredient-ids="editingIngredientIds"
+        :ingredient-edit-drafts="ingredientEditDrafts"
+        :saving-ingredient-id="savingIngredientId"
+        :showing-ingredient-note-forms="showingIngredientNoteForms"
+        :ingredient-note-bodies="ingredientNoteBodies"
+        :saving-ingredient-note-id="savingIngredientNoteId"
+        @update:ingredient-name="ingredientName = $event"
+        @update:ingredient-amount="ingredientAmount = $event"
+        @update:ingredient-amount-type="ingredientAmountType = $event"
+        @update:ingredient-grouping="ingredientGrouping = $event"
+        @add-ingredient="addIngredient"
+        @save-ingredient="saveIngredient"
+        @cancel-edit="cancelIngredientEdit"
+        @begin-edit="beginIngredientEdit"
+        @show-note-form="showIngredientNoteForm"
+        @add-note="addIngredientNote"
+        @hide-note-form="hideIngredientNoteForm"
+      />
 
-        <div class="versions-header">
-          <h3>Instructions</h3>
-          <button type="button" @click="addDraftInstruction">Add instruction</button>
-        </div>
+      <RecipeInstructionsSection
+        v-if="activeVersion"
+        :active-version="activeVersion"
+        :instruction-title="instructionTitle"
+        :is-saving-instruction="isSavingInstruction"
+        :deleting-instruction-id="deletingInstructionId"
+        :step-bodies="stepBodies"
+        :saving-step-instruction-id="savingStepInstructionId"
+        :deleting-step-id="deletingStepId"
+        :showing-step-note-forms="showingStepNoteForms"
+        :step-note-bodies="stepNoteBodies"
+        :saving-step-note-id="savingStepNoteId"
+        @update:instruction-title="instructionTitle = $event"
+        @add-instruction="addInstruction"
+        @remove-instruction="removeInstruction"
+        @add-step="addStep"
+        @remove-step="removeStep"
+        @show-note-form="showStepNoteForm"
+        @add-note="addStepNote"
+        @hide-note-form="hideStepNoteForm"
+      />
 
-        <div
-          v-for="(instruction, instructionIndex) in importDraft.instructions"
-          :key="`instruction-${instructionIndex}`"
-          class="instruction-card"
-        >
-          <div class="draft-row">
-            <input
-              v-model="instruction.title"
-              type="text"
-              placeholder="Instruction title"
-            />
-            <button
-              type="button"
-              class="danger-button"
-              @click="removeDraftInstruction(instructionIndex)"
-            >
-              Remove
-            </button>
-          </div>
-
-          <div
-            v-for="(step, stepIndex) in instruction.steps"
-            :key="`step-${instructionIndex}-${stepIndex}`"
-            class="draft-row"
-          >
-            <input v-model="instruction.steps[stepIndex]" type="text" placeholder="Step" />
-            <button
-              type="button"
-              class="danger-button"
-              @click="removeDraftStep(instruction, stepIndex)"
-            >
-              Remove step
-            </button>
-          </div>
-
-          <button type="button" @click="addDraftStep(instruction)">Add step</button>
-        </div>
-
-        <div class="draft-actions">
-          <button type="button" :disabled="isApplyingImportDraft" @click="applyDraft">
-            {{ isApplyingImportDraft ? "Saving..." : "Save imported data" }}
-          </button>
-          <button type="button" class="danger-button" @click="importDraft = null">
-            Cancel
-          </button>
-        </div>
-      </div>
-
-      <div v-if="activeVersion" class="versions-card">
-        <div class="versions-header">
-          <h3>Active version</h3>
-          <p>V{{ activeVersion.version_number }}</p>
-        </div>
-
-        <form class="ingredient-form" @submit.prevent="addIngredient">
-          <input
-            v-model="ingredientName"
-            type="text"
-            placeholder="Add ingredient"
-          />
-          <input
-            v-model.number="ingredientAmount"
-            min="0.01"
-            step="0.01"
-            type="number"
-            placeholder="Amount"
-          />
-          <select v-model="ingredientAmountType">
-            <option
-              v-for="amountType in amountTypes"
-              :key="amountType"
-              :value="amountType"
-            >
-              {{ amountTypeLabel(amountType) }}
-            </option>
-          </select>
-          <button type="submit" :aria-label="isSavingIngredient ? 'Saving ingredient' : 'Add ingredient'">
-            {{ isSavingIngredient ? "Saving..." : "➕" }}
-          </button>
-        </form>
-
-        <p v-if="activeVersion.ingredients.length === 0">No ingredients yet.</p>
-        <div v-else>
-          <div
-            v-for="group in groupedActiveIngredients"
-            :key="group.grouping || 'ungrouped'"
-            class="ingredient-group"
-          >
-            <h4 v-if="group.grouping">{{ group.grouping }}</h4>
-            <ul>
-              <li v-for="ingredient in group.ingredients" :key="ingredient.id">
-                <div v-if="editingIngredientIds[ingredient.id]" class="ingredient-edit-row">
-                  <input
-                    v-model="ingredientEditDrafts[ingredient.id].name"
-                    type="text"
-                    placeholder="Ingredient name"
-                  />
-                  <input
-                    v-model.number="ingredientEditDrafts[ingredient.id].amount"
-                    min="0.01"
-                    step="0.01"
-                    type="number"
-                  />
-                  <select v-model="ingredientEditDrafts[ingredient.id].amount_type">
-                    <option
-                      v-for="amountType in amountTypes"
-                      :key="`existing-${ingredient.id}-${amountType}`"
-                      :value="amountType"
-                    >
-                      {{ amountTypeLabel(amountType) }}
-                    </option>
-                  </select>
-                  <input
-                    v-model="ingredientEditDrafts[ingredient.id].grouping"
-                    type="text"
-                    placeholder="Grouping"
-                  />
-                  <button
-                    type="button"
-                    :disabled="savingIngredientId !== ''"
-                    @click="saveIngredient(ingredient)"
-                  >
-                    {{ savingIngredientId === ingredient.id ? "Saving..." : "Save" }}
-                  </button>
-                  <button type="button" @click="cancelIngredientEdit(ingredient.id)">
-                    Cancel
-                  </button>
-                </div>
-                <div v-else class="ingredient-display-row">
-                  <div class="item-with-note">
-                    <div class="item-main">
-                      <p class="ingredient-preview">
-                        {{ formatAmount(ingredient.amount) }}
-                        {{ amountTypeLabel(ingredient.amount_type) }}
-                        {{ ingredient.name }}
-                      </p>
-                      <div class="item-actions">
-                        <button
-                          v-if="!showingIngredientNoteForms[ingredient.id]"
-                          type="button"
-                          class="icon-button compact-button"
-                          @click="showIngredientNoteForm(ingredient.id)"
-                        >
-                          Add note
-                        </button>
-                        <button
-                          type="button"
-                          class="icon-button"
-                          aria-label="Edit ingredient"
-                          @click="beginIngredientEdit(ingredient)"
-                        >
-                          ✎
-                        </button>
-                      </div>
-                    </div>
-                    <div v-if="ingredient.notes.length > 0" class="note-stack">
-                      <div
-                        v-for="note in ingredient.notes"
-                        :key="note.id"
-                        class="note-callout"
-                      >
-                        Important note: {{ note.body }}
-                      </div>
-                    </div>
-                    <form
-                      v-if="showingIngredientNoteForms[ingredient.id]"
-                      class="note-form"
-                      @submit.prevent="addIngredientNote(ingredient.id)"
-                    >
-                      <input
-                        v-model="ingredientNoteBodies[ingredient.id]"
-                        type="text"
-                        placeholder="Add note for next time"
-                      />
-                      <button
-                        type="submit"
-                        :aria-label="
-                          savingIngredientNoteId === ingredient.id
-                            ? 'Saving note'
-                            : 'Save note'
-                        "
-                      >
-                        {{
-                          savingIngredientNoteId === ingredient.id
-                            ? "Saving..."
-                            : "☑"
-                        }}
-                      </button>
-                      <button type="button" @click="hideIngredientNoteForm(ingredient.id)">
-                        Cancel
-                      </button>
-                    </form>
-                  </div>
-                </div>
-              </li>
-            </ul>
-          </div>
-        </div>
-      </div>
-
-      <div v-if="activeVersion" class="versions-card">
-        <div class="versions-header">
-          <h3>Instructions</h3>
-        </div>
-
-        <form class="instruction-form" @submit.prevent="addInstruction">
-          <input
-            v-model="instructionTitle"
-            type="text"
-            placeholder="Instruction title (optional)"
-          />
-          <button
-            type="submit"
-            :aria-label="isSavingInstruction ? 'Saving instruction' : 'Add instruction'"
-          >
-            {{ isSavingInstruction ? "Saving..." : "➕📄" }}
-          </button>
-        </form>
-
-        <p v-if="activeVersion.instructions.length === 0">No instructions yet.</p>
-        <div
-          v-else
-          v-for="instruction in activeVersion.instructions"
-          :key="instruction.id"
-          class="instruction-card"
-        >
-          <div class="instruction-header">
-            <h4 v-if="instruction.title">{{ instruction.title }}</h4>
-            <button
-              type="button"
-              class="danger-button"
-              :disabled="deletingInstructionId !== ''"
-              :aria-label="
-                deletingInstructionId === instruction.id
-                  ? 'Deleting instruction'
-                  : 'Delete instruction'
-              "
-              @click="removeInstruction(instruction.id)"
-            >
-              {{ deletingInstructionId === instruction.id ? "Deleting..." : "🗑️📄" }}
-            </button>
-          </div>
-          <ol v-if="instruction.steps.length > 0">
-            <li v-for="step in instruction.steps" :key="step.id">
-              <div class="item-with-note">
-                <div class="step-row">
-                  <span>{{ step.body }}</span>
-                  <div class="item-actions">
-                    <button
-                      v-if="!showingStepNoteForms[step.id]"
-                      type="button"
-                      class="icon-button compact-button"
-                      @click="showStepNoteForm(step.id)"
-                    >
-                      Add note
-                    </button>
-                    <button
-                      type="button"
-                      class="danger-button"
-                      :disabled="deletingStepId !== ''"
-                      :aria-label="
-                        deletingStepId === step.id ? 'Deleting step' : 'Delete step'
-                      "
-                      @click="removeStep(instruction.id, step.id)"
-                    >
-                      {{ deletingStepId === step.id ? "Deleting..." : "🗑️" }}
-                    </button>
-                  </div>
-                </div>
-                <div v-if="step.notes.length > 0" class="note-stack">
-                  <div v-for="note in step.notes" :key="note.id" class="note-callout">
-                    Important note: {{ note.body }}
-                  </div>
-                </div>
-                <form
-                  v-if="showingStepNoteForms[step.id]"
-                  class="note-form"
-                  @submit.prevent="addStepNote(step.id)"
-                >
-                  <input
-                    v-model="stepNoteBodies[step.id]"
-                    type="text"
-                    placeholder="Add note for next time"
-                  />
-                  <button
-                    type="submit"
-                    :aria-label="savingStepNoteId === step.id ? 'Saving note' : 'Save note'"
-                  >
-                    {{ savingStepNoteId === step.id ? "Saving..." : "☑" }}
-                  </button>
-                  <button type="button" @click="hideStepNoteForm(step.id)">Cancel</button>
-                </form>
-              </div>
-            </li>
-          </ol>
-          <p v-else>No steps yet.</p>
-
-          <form class="instruction-form" @submit.prevent="addStep(instruction.id)">
-            <input
-              v-model="stepBodies[instruction.id]"
-              type="text"
-              placeholder="Add step"
-            />
-            <button
-              type="submit"
-              :aria-label="
-                savingStepInstructionId === instruction.id ? 'Saving step' : 'Add step'
-              "
-            >
-              {{
-                savingStepInstructionId === instruction.id ? "Saving..." : "➕"
-              }}
-            </button>
-          </form>
-        </div>
-      </div>
-
-      <div class="versions-card">
-        <div class="versions-header">
-          <h3>Version History</h3>
-          <button type="button" @click="isVersionHistoryVisible = !isVersionHistoryVisible">
-            {{ isVersionHistoryVisible ? "Hide" : "Show" }}
-          </button>
-        </div>
-
-        <div v-if="isVersionHistoryVisible">
-          <div class="versions-header">
-            <h4>Versions</h4>
-            <button type="button" @click="addVersion">
-              {{ isCreatingVersion ? "Adding..." : "Add version" }}
-            </button>
-          </div>
-
-          <p v-if="recipe.versions.length === 0">No versions yet.</p>
-
-          <ul v-else>
-            <li v-for="version in recipe.versions" :key="version.id">
-              <div class="version-row">
-                <span>
-                  V{{ version.version_number }} ·
-                  {{ version.ingredient_count }} ingredients
-                </span>
-                <button
-                  type="button"
-                  class="danger-button"
-                  :disabled="recipe.versions.length === 1 || deletingVersionId !== ''"
-                  @click="removeVersion(version.id)"
-                >
-                  {{
-                    deletingVersionId === version.id ? "Deleting..." : "Delete version"
-                  }}
-                </button>
-              </div>
-            </li>
-          </ul>
-        </div>
-      </div>
+      <RecipeVersionHistorySection
+        :versions="recipe.versions"
+        :is-version-history-visible="isVersionHistoryVisible"
+        :is-creating-version="isCreatingVersion"
+        :deleting-version-id="deletingVersionId"
+        @toggle="isVersionHistoryVisible = !isVersionHistoryVisible"
+        @add-version="addVersion"
+        @remove-version="removeVersion"
+      />
     </div>
   </section>
 </template>
@@ -995,115 +616,8 @@ onMounted(loadRecipe);
   align-items: center;
 }
 
-.versions-card {
-  padding: 24px;
-  background: #fffaf3;
-  border: 1px solid #d4c5b4;
-}
-
-.versions-header {
-  display: flex;
-  justify-content: space-between;
-  gap: 16px;
-  align-items: center;
-}
-
-.ingredient-form {
-  display: flex;
-  gap: 12px;
-  margin-bottom: 16px;
-}
-
-.instruction-form {
-  display: flex;
-  gap: 12px;
-  margin-bottom: 16px;
-}
-
-input,
-select,
 button {
   font: inherit;
-}
-
-input,
-select {
-  flex: 1;
-  padding: 10px 12px;
-  border: 1px solid #a99987;
-  background: white;
-}
-
-button {
-  padding: 10px 16px;
-  border: 0;
-  background: #8f6d50;
-  color: white;
-  cursor: pointer;
-}
-
-button:disabled {
-  opacity: 0.6;
-  cursor: default;
-}
-
-.danger-button {
-  background: #8c2f1d;
-}
-
-.version-row {
-  display: flex;
-  justify-content: space-between;
-  gap: 16px;
-  align-items: center;
-}
-
-.instruction-card + .instruction-card {
-  margin-top: 20px;
-}
-
-.instruction-header {
-  display: flex;
-  justify-content: space-between;
-  gap: 16px;
-  align-items: center;
-}
-
-.draft-row {
-  display: flex;
-  gap: 12px;
-  margin-bottom: 12px;
-}
-
-.draft-actions {
-  display: flex;
-  gap: 12px;
-  margin-top: 20px;
-}
-
-.step-row {
-  display: flex;
-  justify-content: space-between;
-  gap: 16px;
-  align-items: center;
-}
-
-.ingredient-group + .ingredient-group {
-  margin-top: 20px;
-}
-
-.ingredient-edit-row {
-  display: flex;
-  gap: 12px;
-  align-items: center;
-}
-
-.ingredient-display-row {
-  width: 100%;
-}
-
-.ingredient-preview {
-  margin: 8px 0 0;
 }
 
 .icon-button {
@@ -1111,55 +625,15 @@ button:disabled {
   background: transparent;
   color: #6f5036;
   border: 1px solid #a99987;
+  cursor: pointer;
+}
+
+.danger-button {
+  background: #8c2f1d;
 }
 
 .danger-icon-button {
   color: white;
   border-color: #8c2f1d;
-}
-
-.compact-button {
-  font-size: 12px;
-  line-height: 1.2;
-}
-
-.item-with-note {
-  display: grid;
-  gap: 10px;
-}
-
-.item-main {
-  display: flex;
-  justify-content: space-between;
-  gap: 12px;
-  align-items: center;
-}
-
-.item-actions {
-  display: flex;
-  gap: 8px;
-  align-items: center;
-}
-
-.note-stack {
-  display: grid;
-  gap: 8px;
-}
-
-.note-callout {
-  padding: 10px 12px;
-  background: #fff1c7;
-  border-left: 4px solid #d68b00;
-  color: #5b3a00;
-  font-weight: 700;
-}
-
-.note-form {
-  display: flex;
-  gap: 12px;
-}
-
-ul {
-  padding-left: 20px;
 }
 </style>
