@@ -47,6 +47,7 @@ const amountTypes: IngredientAmountType[] = [
   "teaspoon",
   "tablespoon",
   "dash",
+  "pounds",
   "weight_g",
 ];
 
@@ -354,7 +355,12 @@ onMounted(loadRecipe);
           class="draft-row"
         >
           <input v-model="ingredient.name" type="text" placeholder="Ingredient name" />
-          <input v-model.number="ingredient.amount" min="1" type="number" />
+          <input
+            v-model.number="ingredient.amount"
+            min="0.01"
+            step="0.01"
+            type="number"
+          />
           <select v-model="ingredient.amount_type">
             <option
               v-for="amountType in amountTypes"
@@ -440,7 +446,8 @@ onMounted(loadRecipe);
           />
           <input
             v-model.number="ingredientAmount"
-            min="1"
+            min="0.01"
+            step="0.01"
             type="number"
             placeholder="Amount"
           />

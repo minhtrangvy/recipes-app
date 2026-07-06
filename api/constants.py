@@ -12,5 +12,6 @@ AMOUNT_TYPES = (
     "teaspoon",
     "tablespoon",
     "dash",
+    "pounds",
     "weight_g",
 )

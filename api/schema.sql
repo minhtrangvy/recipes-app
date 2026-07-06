@@ -31,8 +31,23 @@ begin
             'teaspoon',
             'tablespoon',
             'dash',
+            'pounds',
             'weight_g'
         );
+    end if;
+end
+$$;
+
+do $$
+begin
+    if not exists (
+        select 1
+        from pg_enum e
+        join pg_type t on t.oid = e.enumtypid
+        where t.typname = 'ingredient_amount_type'
+            and e.enumlabel = 'pounds'
+    ) then
+        alter type ingredient_amount_type add value 'pounds';
     end if;
 end
 $$;
@@ -65,7 +80,7 @@ create table if not exists ingredients (
     id uuid primary key default gen_random_uuid(),
     recipe_version_id uuid not null references recipe_versions(id) on delete cascade,
     name text not null,
-    amount integer not null default 1,
+    amount numeric not null default 1,
     amount_type ingredient_amount_type not null default 'dash',
     created_at timestamptz not null default now()
 );
@@ -74,7 +89,7 @@ alter table ingredients
     add column if not exists name text;
 
 alter table ingredients
-    add column if not exists amount integer;
+    add column if not exists amount numeric;
 
 alter table ingredients
     add column if not exists amount_type ingredient_amount_type;
@@ -89,6 +104,9 @@ where name is null;
 update ingredients
 set amount = 1
 where amount is null;
+
+alter table ingredients
+    alter column amount type numeric using amount::numeric;
 
 update ingredients
 set amount_type = 'dash'

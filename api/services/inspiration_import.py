@@ -23,7 +23,7 @@ def import_recipe_from_url(inspiration_url: str) -> dict[str, Any]:
                 "content": (
                     "Extract recipe data from the provided page text. "
                     "Return only valid JSON with this shape: "
-                    '{"ingredients":[{"name":"string","amount":1,"amount_type":"cup|teaspoon|tablespoon|dash|weight_g"}],'
+                    '{"ingredients":[{"name":"string","amount":1,"amount_type":"cup|teaspoon|tablespoon|dash|pounds|weight_g"}],'
                     '"instructions":[{"title":"string","steps":["string"]}]}. '
                     "Do not include markdown fences or commentary. "
                     "If the page is ambiguous, make the best structured extraction you can."
@@ -79,8 +79,7 @@ def normalize_import_payload(payload: dict[str, Any]) -> dict[str, Any]:
         if not name:
             continue
 
-        if not isinstance(amount, int) or amount <= 0:
-            amount = 1
+        amount = normalize_amount(amount)
 
         if amount_type not in AMOUNT_TYPE_SET:
             amount_type = "dash"
@@ -121,3 +120,13 @@ def extract_json(output_text: str) -> str:
             lines = lines[:-1]
         return "\n".join(lines).strip()
     return stripped
+
+
+def normalize_amount(value: Any) -> float:
+    if isinstance(value, bool):
+        return 1
+
+    if isinstance(value, (int, float)) and value > 0:
+        return float(value)
+
+    return 1

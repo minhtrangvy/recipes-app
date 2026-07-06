@@ -7,6 +7,16 @@ from api.services.inspiration_import import import_recipe_from_url
 app = Flask(__name__)
 
 
+def parse_positive_amount(value):
+    if isinstance(value, bool):
+        return None
+
+    if isinstance(value, (int, float)) and value > 0:
+        return value
+
+    return None
+
+
 def validate_recipe_payload(payload):
     name = (payload.get("name") or "").strip()
     category = payload.get("category")
@@ -142,14 +152,14 @@ def create_recipe_version(recipe_id):
 def create_ingredient(recipe_id):
     payload = request.get_json(silent=True) or {}
     name = (payload.get("name") or "").strip()
-    amount = payload.get("amount")
+    amount = parse_positive_amount(payload.get("amount"))
     amount_type = payload.get("amount_type")
 
     if not name:
         return {"error": "name is required"}, 400
 
-    if not isinstance(amount, int) or amount <= 0:
-        return {"error": "amount must be a positive integer"}, 400
+    if amount is None:
+        return {"error": "amount must be a positive number"}, 400
 
     if amount_type not in AMOUNT_TYPES:
         return {"error": "amount_type is invalid"}, 400

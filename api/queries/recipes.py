@@ -17,7 +17,7 @@ def serialize_ingredient_row(row):
         "id": str(row["id"]),
         "recipe_version_id": str(row["recipe_version_id"]),
         "name": row["name"],
-        "amount": row["amount"],
+        "amount": float(row["amount"]),
         "amount_type": row["amount_type"],
         "created_at": row["created_at"].isoformat(),
     }
