@@ -7,14 +7,14 @@ import {
   createIngredient,
   createIngredientNote,
   createInstruction,
-  createRecipeVersion,
   createStep,
   createStepNote,
   deleteIngredient,
+  deleteIngredientNote,
   deleteInstruction,
   deleteRecipe,
-  deleteRecipeVersion,
   deleteStep,
+  deleteStepNote,
   fetchRecipe,
   updateIngredientNote,
   updateStep,
@@ -24,7 +24,6 @@ import {
 import RecipeImportReview from "../components/RecipeImportReview.vue";
 import RecipeIngredientsSection from "../components/RecipeIngredientsSection.vue";
 import RecipeInstructionsSection from "../components/RecipeInstructionsSection.vue";
-import RecipeVersionHistorySection from "../components/RecipeVersionHistorySection.vue";
 import type {
   Ingredient,
   ImportedIngredientDraft,
@@ -40,7 +39,6 @@ const router = useRouter();
 const recipe = ref<RecipeDetail | null>(null);
 const errorMessage = ref("");
 const isLoading = ref(true);
-const isCreatingVersion = ref(false);
 const isSavingIngredient = ref(false);
 const savingIngredientId = ref("");
 const deletingIngredientId = ref("");
@@ -56,7 +54,6 @@ const ingredientEditDrafts = ref<
     }
   >
 >({});
-const deletingVersionId = ref("");
 const isDeletingRecipe = ref(false);
 const ingredientName = ref("");
 const ingredientAmount = ref(1);
@@ -70,7 +67,6 @@ const editingStepIds = ref<Record<string, boolean>>({});
 const stepEditBodies = ref<Record<string, string>>({});
 const savingEditedStepId = ref("");
 const deletingStepId = ref("");
-const isVersionHistoryVisible = ref(false);
 const ingredientNoteBodies = ref<Record<string, string>>({});
 const stepNoteBodies = ref<Record<string, string>>({});
 const showingIngredientNoteForms = ref<Record<string, boolean>>({});
@@ -83,6 +79,8 @@ const ingredientNoteEditBodies = ref<Record<string, string>>({});
 const stepNoteEditBodies = ref<Record<string, string>>({});
 const savingEditedIngredientNoteId = ref("");
 const savingEditedStepNoteId = ref("");
+const deletingIngredientNoteId = ref("");
+const deletingStepNoteId = ref("");
 const isApplyingImportDraft = ref(false);
 const importDraft = ref<RecipeImportDraft | null>(null);
 
@@ -214,25 +212,6 @@ function beginIngredientEdit(ingredient: Ingredient) {
 function cancelIngredientEdit(ingredientId: string) {
   editingIngredientIds.value[ingredientId] = false;
   delete ingredientEditDrafts.value[ingredientId];
-}
-
-async function addVersion() {
-  const recipeId = route.params.recipeId;
-  if (typeof recipeId !== "string") {
-    return;
-  }
-
-  isCreatingVersion.value = true;
-
-  try {
-    await createRecipeVersion(recipeId);
-    await loadRecipe();
-  } catch (error) {
-    errorMessage.value =
-      error instanceof Error ? error.message : "Unable to add version";
-  } finally {
-    isCreatingVersion.value = false;
-  }
 }
 
 async function addInstruction() {
@@ -431,6 +410,26 @@ async function saveIngredientNote(ingredientId: string, noteId: string) {
   }
 }
 
+async function removeIngredientNote(ingredientId: string, noteId: string) {
+  const recipeId = route.params.recipeId;
+  if (typeof recipeId !== "string") {
+    return;
+  }
+
+  deletingIngredientNoteId.value = noteId;
+  errorMessage.value = "";
+
+  try {
+    await deleteIngredientNote(recipeId, ingredientId, noteId);
+    await loadRecipe();
+  } catch (error) {
+    errorMessage.value =
+      error instanceof Error ? error.message : "Unable to delete note";
+  } finally {
+    deletingIngredientNoteId.value = "";
+  }
+}
+
 function beginStepNoteEdit(noteId: string, body: string) {
   editingStepNoteIds.value[noteId] = true;
   stepNoteEditBodies.value[noteId] = body;
@@ -464,6 +463,26 @@ async function saveStepNote(stepId: string, noteId: string) {
   }
 }
 
+async function removeStepNote(stepId: string, noteId: string) {
+  const recipeId = route.params.recipeId;
+  if (typeof recipeId !== "string") {
+    return;
+  }
+
+  deletingStepNoteId.value = noteId;
+  errorMessage.value = "";
+
+  try {
+    await deleteStepNote(recipeId, stepId, noteId);
+    await loadRecipe();
+  } catch (error) {
+    errorMessage.value =
+      error instanceof Error ? error.message : "Unable to delete note";
+  } finally {
+    deletingStepNoteId.value = "";
+  }
+}
+
 function showIngredientNoteForm(ingredientId: string) {
   showingIngredientNoteForms.value[ingredientId] = true;
 }
@@ -480,26 +499,6 @@ function showStepNoteForm(stepId: string) {
 function hideStepNoteForm(stepId: string) {
   showingStepNoteForms.value[stepId] = false;
   stepNoteBodies.value[stepId] = "";
-}
-
-async function removeVersion(versionId: string) {
-  const recipeId = route.params.recipeId;
-  if (typeof recipeId !== "string") {
-    return;
-  }
-
-  deletingVersionId.value = versionId;
-  errorMessage.value = "";
-
-  try {
-    await deleteRecipeVersion(recipeId, versionId);
-    await loadRecipe();
-  } catch (error) {
-    errorMessage.value =
-      error instanceof Error ? error.message : "Unable to delete version";
-  } finally {
-    deletingVersionId.value = "";
-  }
 }
 
 async function removeRecipe() {
@@ -679,6 +678,7 @@ onMounted(loadRecipe);
         :editing-ingredient-note-ids="editingIngredientNoteIds"
         :ingredient-note-edit-bodies="ingredientNoteEditBodies"
         :saving-edited-ingredient-note-id="savingEditedIngredientNoteId"
+        :deleting-ingredient-note-id="deletingIngredientNoteId"
         @update:ingredient-name="ingredientName = $event"
         @update:ingredient-amount="ingredientAmount = $event"
         @update:ingredient-amount-type="ingredientAmountType = $event"
@@ -693,6 +693,7 @@ onMounted(loadRecipe);
         @hide-note-form="hideIngredientNoteForm"
         @begin-note-edit="beginIngredientNoteEdit"
         @save-note="saveIngredientNote"
+        @remove-note="removeIngredientNote"
         @cancel-note-edit="cancelIngredientNoteEdit"
       />
 
@@ -714,6 +715,7 @@ onMounted(loadRecipe);
         :editing-step-note-ids="editingStepNoteIds"
         :step-note-edit-bodies="stepNoteEditBodies"
         :saving-edited-step-note-id="savingEditedStepNoteId"
+        :deleting-step-note-id="deletingStepNoteId"
         @update:instruction-title="instructionTitle = $event"
         @add-instruction="addInstruction"
         @remove-instruction="removeInstruction"
@@ -727,17 +729,8 @@ onMounted(loadRecipe);
         @hide-note-form="hideStepNoteForm"
         @begin-note-edit="beginStepNoteEdit"
         @save-note="saveStepNote"
+        @remove-note="removeStepNote"
         @cancel-note-edit="cancelStepNoteEdit"
-      />
-
-      <RecipeVersionHistorySection
-        :versions="recipe.versions"
-        :is-version-history-visible="isVersionHistoryVisible"
-        :is-creating-version="isCreatingVersion"
-        :deleting-version-id="deletingVersionId"
-        @toggle="isVersionHistoryVisible = !isVersionHistoryVisible"
-        @add-version="addVersion"
-        @remove-version="removeVersion"
       />
     </div>
   </section>

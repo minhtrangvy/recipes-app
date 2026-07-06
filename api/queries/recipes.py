@@ -852,6 +852,38 @@ def update_ingredient_note(recipe_id, ingredient_id, note_id, body):
     return {"note": serialize_note_row(note)}, None
 
 
+def delete_ingredient_note(recipe_id, ingredient_id, note_id):
+    with get_connection() as connection:
+        with connection.cursor() as cursor:
+            cursor.execute(
+                """
+                delete from notes
+                where id = %s
+                    and ingredient_id = %s
+                    and exists (
+                        select 1
+                        from ingredients i
+                        inner join recipe_versions rv on rv.id = i.recipe_version_id
+                        inner join recipes r on r.id = rv.recipe_id
+                        where i.id = %s
+                            and rv.recipe_id = %s
+                            and rv.deleted_at is null
+                            and r.deleted_at is null
+                    )
+                returning id
+                """,
+                (note_id, ingredient_id, ingredient_id, recipe_id),
+            )
+            deleted_note = cursor.fetchone()
+
+            if deleted_note is None:
+                return "ingredient note not found"
+
+        connection.commit()
+
+    return None
+
+
 def create_step_note(recipe_id, step_id, body):
     with get_connection() as connection:
         with connection.cursor() as cursor:
@@ -913,6 +945,39 @@ def update_step_note(recipe_id, step_id, note_id, body):
         connection.commit()
 
     return {"note": serialize_note_row(note)}, None
+
+
+def delete_step_note(recipe_id, step_id, note_id):
+    with get_connection() as connection:
+        with connection.cursor() as cursor:
+            cursor.execute(
+                """
+                delete from notes
+                where id = %s
+                    and step_id = %s
+                    and exists (
+                        select 1
+                        from steps s
+                        inner join instructions i on i.id = s.instruction_id
+                        inner join recipe_versions rv on rv.id = i.recipe_version_id
+                        inner join recipes r on r.id = rv.recipe_id
+                        where s.id = %s
+                            and rv.recipe_id = %s
+                            and rv.deleted_at is null
+                            and r.deleted_at is null
+                    )
+                returning id
+                """,
+                (note_id, step_id, step_id, recipe_id),
+            )
+            deleted_note = cursor.fetchone()
+
+            if deleted_note is None:
+                return "step note not found"
+
+        connection.commit()
+
+    return None
 
 
 def delete_recipe_version(recipe_id, version_id):

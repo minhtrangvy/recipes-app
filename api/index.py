@@ -197,6 +197,15 @@ def update_step_note(recipe_id, step_id, note_id):
     return jsonify(result)
 
 
+@app.delete("/api/recipes/<recipe_id>/steps/<step_id>/notes/<note_id>")
+def delete_step_note(recipe_id, step_id, note_id):
+    error = recipe_queries.delete_step_note(recipe_id, step_id, note_id)
+    if error is not None:
+        return {"error": error}, 404
+
+    return "", 204
+
+
 @app.post("/api/recipes/<recipe_id>/versions")
 def create_recipe_version(recipe_id):
     version, error = recipe_queries.create_recipe_version(recipe_id)
@@ -304,6 +313,15 @@ def update_ingredient_note(recipe_id, ingredient_id, note_id):
         return {"error": error}, 404
 
     return jsonify(result)
+
+
+@app.delete("/api/recipes/<recipe_id>/ingredients/<ingredient_id>/notes/<note_id>")
+def delete_ingredient_note(recipe_id, ingredient_id, note_id):
+    error = recipe_queries.delete_ingredient_note(recipe_id, ingredient_id, note_id)
+    if error is not None:
+        return {"error": error}, 404
+
+    return "", 204
 
 
 @app.delete("/api/recipes/<recipe_id>/versions/<version_id>")

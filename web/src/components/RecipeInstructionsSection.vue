@@ -18,6 +18,7 @@ const props = defineProps<{
   editingStepNoteIds: Record<string, boolean>;
   stepNoteEditBodies: Record<string, string>;
   savingEditedStepNoteId: string;
+  deletingStepNoteId: string;
 }>();
 
 defineEmits<{
@@ -34,6 +35,7 @@ defineEmits<{
   (event: "hide-note-form", stepId: string): void;
   (event: "begin-note-edit", noteId: string, body: string): void;
   (event: "save-note", stepId: string, noteId: string): void;
+  (event: "remove-note", stepId: string, noteId: string): void;
   (event: "cancel-note-edit", noteId: string): void;
 }>();
 </script>
@@ -165,14 +167,31 @@ defineEmits<{
                 </div>
                 <div v-else class="note-callout-row">
                   <span>{{ note.body }}</span>
-                  <button
-                    type="button"
-                    class="icon-button"
-                    aria-label="Edit note"
-                    @click="$emit('begin-note-edit', note.id, note.body)"
-                  >
-                    ✎
-                  </button>
+                  <div class="item-actions">
+                    <button
+                      type="button"
+                      class="icon-button"
+                      aria-label="Edit note"
+                      @click="$emit('begin-note-edit', note.id, note.body)"
+                    >
+                      ✎
+                    </button>
+                    <button
+                      type="button"
+                      class="icon-button danger-icon-button"
+                      :disabled="props.deletingStepNoteId !== ''"
+                      :aria-label="
+                        props.deletingStepNoteId === note.id
+                          ? 'Deleting note'
+                          : 'Delete note'
+                      "
+                      @click="$emit('remove-note', step.id, note.id)"
+                    >
+                      {{
+                        props.deletingStepNoteId === note.id ? "Deleting..." : "🗑️"
+                      }}
+                    </button>
+                  </div>
                 </div>
               </div>
             </div>

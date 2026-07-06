@@ -28,6 +28,7 @@ const props = defineProps<{
   editingIngredientNoteIds: Record<string, boolean>;
   ingredientNoteEditBodies: Record<string, string>;
   savingEditedIngredientNoteId: string;
+  deletingIngredientNoteId: string;
 }>();
 
 defineEmits<{
@@ -45,6 +46,7 @@ defineEmits<{
   (event: "hide-note-form", ingredientId: string): void;
   (event: "begin-note-edit", noteId: string, body: string): void;
   (event: "save-note", ingredientId: string, noteId: string): void;
+  (event: "remove-note", ingredientId: string, noteId: string): void;
   (event: "cancel-note-edit", noteId: string): void;
 }>();
 
@@ -278,14 +280,33 @@ function formatAmount(amount: number) {
                     </div>
                     <div v-else class="note-callout-row">
                       <span>{{ note.body }}</span>
-                      <button
-                        type="button"
-                        class="icon-button"
-                        aria-label="Edit note"
-                        @click="$emit('begin-note-edit', note.id, note.body)"
-                      >
-                        ✎
-                      </button>
+                      <div class="item-actions">
+                        <button
+                          type="button"
+                          class="icon-button"
+                          aria-label="Edit note"
+                          @click="$emit('begin-note-edit', note.id, note.body)"
+                        >
+                          ✎
+                        </button>
+                        <button
+                          type="button"
+                          class="icon-button danger-icon-button"
+                          :disabled="props.deletingIngredientNoteId !== ''"
+                          :aria-label="
+                            props.deletingIngredientNoteId === note.id
+                              ? 'Deleting note'
+                              : 'Delete note'
+                          "
+                          @click="$emit('remove-note', ingredient.id, note.id)"
+                        >
+                          {{
+                            props.deletingIngredientNoteId === note.id
+                              ? "Deleting..."
+                              : "🗑️"
+                          }}
+                        </button>
+                      </div>
                     </div>
                   </div>
                 </div>

@@ -285,6 +285,20 @@ export async function updateIngredientNote(
   return parseResponse<{ note: Note }>(response);
 }
 
+export async function deleteIngredientNote(
+  recipeId: string,
+  ingredientId: string,
+  noteId: string
+): Promise<void> {
+  const response = await fetch(
+    `/api/recipes/${recipeId}/ingredients/${ingredientId}/notes/${noteId}`,
+    {
+      method: "DELETE",
+    }
+  );
+  await parseResponse(response);
+}
+
 export async function createStepNote(
   recipeId: string,
   stepId: string,
@@ -314,4 +328,15 @@ export async function updateStepNote(
     body: JSON.stringify({ body }),
   });
   return parseResponse<{ note: Note }>(response);
+}
+
+export async function deleteStepNote(
+  recipeId: string,
+  stepId: string,
+  noteId: string
+): Promise<void> {
+  const response = await fetch(`/api/recipes/${recipeId}/steps/${stepId}/notes/${noteId}`, {
+    method: "DELETE",
+  });
+  await parseResponse(response);
 }
