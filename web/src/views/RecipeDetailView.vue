@@ -7,6 +7,7 @@ import {
   applyImportDraft,
   fetchImportPreview,
   deleteRecipe,
+  deleteStep,
   createIngredient,
   createInstruction,
   createRecipeVersion,
@@ -38,6 +39,7 @@ const instructionTitle = ref("");
 const isSavingInstruction = ref(false);
 const stepBodies = ref<Record<string, string>>({});
 const savingStepInstructionId = ref("");
+const deletingStepId = ref("");
 const isLoadingImportPreview = ref(false);
 const isApplyingImportDraft = ref(false);
 const importDraft = ref<RecipeImportDraft | null>(null);
@@ -182,6 +184,26 @@ async function addStep(instructionId: string) {
       error instanceof Error ? error.message : "Unable to add step";
   } finally {
     savingStepInstructionId.value = "";
+  }
+}
+
+async function removeStep(instructionId: string, stepId: string) {
+  const recipeId = route.params.recipeId;
+  if (typeof recipeId !== "string") {
+    return;
+  }
+
+  deletingStepId.value = stepId;
+  errorMessage.value = "";
+
+  try {
+    await deleteStep(recipeId, instructionId, stepId);
+    await loadRecipe();
+  } catch (error) {
+    errorMessage.value =
+      error instanceof Error ? error.message : "Unable to delete step";
+  } finally {
+    deletingStepId.value = "";
   }
 }
 
@@ -524,7 +546,17 @@ onMounted(loadRecipe);
           <h4>{{ instruction.title }}</h4>
           <ol v-if="instruction.steps.length > 0">
             <li v-for="step in instruction.steps" :key="step.id">
-              {{ step.body }}
+              <div class="step-row">
+                <span>{{ step.body }}</span>
+                <button
+                  type="button"
+                  class="danger-button"
+                  :disabled="deletingStepId !== ''"
+                  @click="removeStep(instruction.id, step.id)"
+                >
+                  {{ deletingStepId === step.id ? "Deleting..." : "Delete step" }}
+                </button>
+              </div>
             </li>
           </ol>
           <p v-else>No steps yet.</p>
@@ -669,6 +701,13 @@ button:disabled {
   display: flex;
   gap: 12px;
   margin-top: 20px;
+}
+
+.step-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  align-items: center;
 }
 
 ul {

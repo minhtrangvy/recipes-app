@@ -171,3 +171,17 @@ export async function createStep(
   );
   return parseResponse<{ step: Step }>(response);
 }
+
+export async function deleteStep(
+  recipeId: string,
+  instructionId: string,
+  stepId: string
+): Promise<void> {
+  const response = await fetch(
+    `/api/recipes/${recipeId}/instructions/${instructionId}/steps/${stepId}`,
+    {
+      method: "DELETE",
+    }
+  );
+  await parseResponse(response);
+}

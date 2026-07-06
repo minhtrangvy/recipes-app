@@ -539,6 +539,57 @@ def create_step(recipe_id, instruction_id, body):
     return {"step": serialize_step_row(step)}, None
 
 
+def delete_step(recipe_id, instruction_id, step_id):
+    with get_connection() as connection:
+        with connection.cursor() as cursor:
+            cursor.execute(
+                """
+                delete from steps
+                where id = %s
+                    and instruction_id = %s
+                    and exists (
+                        select 1
+                        from instructions i
+                        inner join recipe_versions rv on rv.id = i.recipe_version_id
+                        inner join recipes r on r.id = rv.recipe_id
+                        where i.id = %s
+                            and rv.recipe_id = %s
+                            and rv.deleted_at is null
+                            and r.deleted_at is null
+                    )
+                returning id
+                """,
+                (step_id, instruction_id, instruction_id, recipe_id),
+            )
+            deleted_step = cursor.fetchone()
+
+            if deleted_step is None:
+                return "step not found"
+
+            cursor.execute(
+                """
+                with ordered_steps as (
+                    select
+                        id,
+                        row_number() over (
+                            order by step_number asc, created_at asc, id asc
+                        ) as new_step_number
+                    from steps
+                    where instruction_id = %s
+                )
+                update steps s
+                set step_number = ordered_steps.new_step_number
+                from ordered_steps
+                where s.id = ordered_steps.id
+                """,
+                (instruction_id,),
+            )
+
+        connection.commit()
+
+    return None
+
+
 def delete_recipe_version(recipe_id, version_id):
     with get_connection() as connection:
         with connection.cursor() as cursor:

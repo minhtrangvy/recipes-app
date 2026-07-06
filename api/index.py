@@ -139,6 +139,15 @@ def create_step(recipe_id, instruction_id):
     return jsonify(result), 201
 
 
+@app.delete("/api/recipes/<recipe_id>/instructions/<instruction_id>/steps/<step_id>")
+def delete_step(recipe_id, instruction_id, step_id):
+    error = recipe_queries.delete_step(recipe_id, instruction_id, step_id)
+    if error is not None:
+        return {"error": error}, 404
+
+    return "", 204
+
+
 @app.post("/api/recipes/<recipe_id>/versions")
 def create_recipe_version(recipe_id):
     version, error = recipe_queries.create_recipe_version(recipe_id)
