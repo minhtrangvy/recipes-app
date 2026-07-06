@@ -170,6 +170,7 @@ def create_ingredient(recipe_id):
     name = (payload.get("name") or "").strip()
     amount = parse_positive_amount(payload.get("amount"))
     amount_type = payload.get("amount_type")
+    grouping = (payload.get("grouping") or "").strip() or None
 
     if not name:
         return {"error": "name is required"}, 400
@@ -185,11 +186,43 @@ def create_ingredient(recipe_id):
         name,
         amount,
         amount_type,
+        grouping,
     )
     if error is not None:
         return {"error": error}, 404
 
     return jsonify(result), 201
+
+
+@app.patch("/api/recipes/<recipe_id>/ingredients/<ingredient_id>")
+def update_ingredient(recipe_id, ingredient_id):
+    payload = request.get_json(silent=True) or {}
+    name = (payload.get("name") or "").strip()
+    amount = parse_positive_amount(payload.get("amount"))
+    amount_type = payload.get("amount_type")
+    grouping = (payload.get("grouping") or "").strip() or None
+
+    if not name:
+        return {"error": "name is required"}, 400
+
+    if amount is None:
+        return {"error": "amount must be a positive number"}, 400
+
+    if amount_type not in AMOUNT_TYPES:
+        return {"error": "amount_type is invalid"}, 400
+
+    result, error = recipe_queries.update_ingredient(
+        recipe_id,
+        ingredient_id,
+        name,
+        amount,
+        amount_type,
+        grouping,
+    )
+    if error is not None:
+        return {"error": error}, 404
+
+    return jsonify(result)
 
 
 @app.delete("/api/recipes/<recipe_id>/versions/<version_id>")

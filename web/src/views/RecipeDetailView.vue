@@ -15,8 +15,10 @@ import {
   createStep,
   deleteRecipeVersion,
   fetchRecipe,
+  updateIngredient,
 } from "../api";
 import type {
+  Ingredient,
   ImportedIngredientDraft,
   ImportedInstructionDraft,
   IngredientAmountType,
@@ -31,6 +33,7 @@ const errorMessage = ref("");
 const isLoading = ref(true);
 const isCreatingVersion = ref(false);
 const isSavingIngredient = ref(false);
+const savingIngredientId = ref("");
 const deletingVersionId = ref("");
 const isDeletingRecipe = ref(false);
 const ingredientName = ref("");
@@ -59,6 +62,24 @@ const amountTypes: IngredientAmountType[] = [
 const ingredientAmountType = ref<IngredientAmountType>(amountTypes[0]);
 
 const activeVersion = computed(() => recipe.value?.versions[0] ?? null);
+
+const groupedActiveIngredients = computed(() => {
+  const ingredients = activeVersion.value?.ingredients ?? [];
+  const groups = new Map<string, Ingredient[]>();
+
+  for (const ingredient of ingredients) {
+    const groupName = ingredient.grouping || "";
+    if (!groups.has(groupName)) {
+      groups.set(groupName, []);
+    }
+    groups.get(groupName)!.push(ingredient);
+  }
+
+  return Array.from(groups.entries()).map(([grouping, ingredientsInGroup]) => ({
+    grouping,
+    ingredients: ingredientsInGroup,
+  }));
+});
 
 function amountTypeLabel(amountType: IngredientAmountType) {
   if (amountType === "weight_g") {
@@ -114,6 +135,7 @@ async function addIngredient() {
       name,
       amount: ingredientAmount.value,
       amount_type: ingredientAmountType.value,
+      grouping: "",
     });
     ingredientName.value = "";
     ingredientAmount.value = 1;
@@ -124,6 +146,31 @@ async function addIngredient() {
       error instanceof Error ? error.message : "Unable to add ingredient";
   } finally {
     isSavingIngredient.value = false;
+  }
+}
+
+async function saveIngredient(ingredient: Ingredient) {
+  const recipeId = route.params.recipeId;
+  if (typeof recipeId !== "string") {
+    return;
+  }
+
+  savingIngredientId.value = ingredient.id;
+  errorMessage.value = "";
+
+  try {
+    await updateIngredient(recipeId, ingredient.id, {
+      name: ingredient.name.trim(),
+      amount: ingredient.amount,
+      amount_type: ingredient.amount_type,
+      grouping: ingredient.grouping.trim(),
+    });
+    await loadRecipe();
+  } catch (error) {
+    errorMessage.value =
+      error instanceof Error ? error.message : "Unable to save ingredient";
+  } finally {
+    savingIngredientId.value = "";
   }
 }
 
@@ -534,13 +581,50 @@ onMounted(loadRecipe);
         </form>
 
         <p v-if="activeVersion.ingredients.length === 0">No ingredients yet.</p>
-        <ul v-else>
-          <li v-for="ingredient in activeVersion.ingredients" :key="ingredient.id">
-            {{ formatAmount(ingredient.amount) }}
-            {{ amountTypeLabel(ingredient.amount_type) }}
-            {{ ingredient.name }}
-          </li>
-        </ul>
+        <div v-else>
+          <div
+            v-for="group in groupedActiveIngredients"
+            :key="group.grouping || 'ungrouped'"
+            class="ingredient-group"
+          >
+            <h4 v-if="group.grouping">{{ group.grouping }}</h4>
+            <ul>
+              <li v-for="ingredient in group.ingredients" :key="ingredient.id">
+                <div class="ingredient-edit-row">
+                  <input v-model="ingredient.name" type="text" placeholder="Ingredient name" />
+                  <input
+                    v-model.number="ingredient.amount"
+                    min="0.01"
+                    step="0.01"
+                    type="number"
+                  />
+                  <select v-model="ingredient.amount_type">
+                    <option
+                      v-for="amountType in amountTypes"
+                      :key="`existing-${ingredient.id}-${amountType}`"
+                      :value="amountType"
+                    >
+                      {{ amountTypeLabel(amountType) }}
+                    </option>
+                  </select>
+                  <input v-model="ingredient.grouping" type="text" placeholder="Grouping" />
+                  <button
+                    type="button"
+                    :disabled="savingIngredientId !== ''"
+                    @click="saveIngredient(ingredient)"
+                  >
+                    {{ savingIngredientId === ingredient.id ? "Saving..." : "Save" }}
+                  </button>
+                </div>
+                <p class="ingredient-preview">
+                  {{ formatAmount(ingredient.amount) }}
+                  {{ amountTypeLabel(ingredient.amount_type) }}
+                  {{ ingredient.name }}
+                </p>
+              </li>
+            </ul>
+          </div>
+        </div>
       </div>
 
       <div v-if="activeVersion" class="versions-card">
@@ -752,6 +836,20 @@ button:disabled {
   justify-content: space-between;
   gap: 16px;
   align-items: center;
+}
+
+.ingredient-group + .ingredient-group {
+  margin-top: 20px;
+}
+
+.ingredient-edit-row {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+
+.ingredient-preview {
+  margin: 8px 0 0;
 }
 
 ul {

@@ -48,6 +48,7 @@ export interface Ingredient {
   name: string;
   amount: number;
   amount_type: IngredientAmountType;
+  grouping: string;
   created_at: string;
 }
 
@@ -71,6 +72,7 @@ export interface ImportedIngredientDraft {
   name: string;
   amount: number;
   amount_type: IngredientAmountType;
+  grouping?: string;
 }
 
 export interface ImportedInstructionDraft {

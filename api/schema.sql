@@ -112,6 +112,7 @@ create table if not exists ingredients (
     name text not null,
     amount numeric not null default 1,
     amount_type ingredient_amount_type not null default 'dash',
+    grouping text null,
     created_at timestamptz not null default now()
 );
 
@@ -123,6 +124,9 @@ alter table ingredients
 
 alter table ingredients
     add column if not exists amount_type ingredient_amount_type;
+
+alter table ingredients
+    add column if not exists grouping text;
 
 alter table ingredients
     add column if not exists created_at timestamptz not null default now();

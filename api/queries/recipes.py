@@ -19,6 +19,7 @@ def serialize_ingredient_row(row):
         "name": row["name"],
         "amount": float(row["amount"]),
         "amount_type": row["amount_type"],
+        "grouping": row["grouping"] or "",
         "created_at": row["created_at"].isoformat(),
     }
 
@@ -126,6 +127,7 @@ def get_recipe(recipe_id):
                         name,
                         amount,
                         amount_type,
+                        grouping,
                         created_at
                     from ingredients
                     where recipe_version_id = %s
@@ -246,14 +248,15 @@ def populate_recipe_version_from_import(version_id, import_payload):
             for ingredient in import_payload.get("ingredients", []):
                 cursor.execute(
                     """
-                    insert into ingredients (recipe_version_id, name, amount, amount_type)
-                    values (%s, %s, %s, %s)
+                    insert into ingredients (recipe_version_id, name, amount, amount_type, grouping)
+                    values (%s, %s, %s, %s, %s)
                     """,
                     (
                         version_id,
                         ingredient["name"],
                         ingredient["amount"],
                         ingredient["amount_type"],
+                        ingredient.get("grouping") or None,
                     ),
                 )
 
@@ -355,8 +358,8 @@ def create_recipe_version(recipe_id):
             if latest_version_id is not None:
                 cursor.execute(
                     """
-                    insert into ingredients (recipe_version_id, name, amount, amount_type)
-                    select %s, name, amount, amount_type
+                    insert into ingredients (recipe_version_id, name, amount, amount_type, grouping)
+                    select %s, name, amount, amount_type, grouping
                     from ingredients
                     where recipe_version_id = %s
                     order by created_at asc, id asc
@@ -404,7 +407,7 @@ def create_recipe_version(recipe_id):
     return serialize_recipe_version_row(version), None
 
 
-def create_ingredient(recipe_id, name, amount, amount_type):
+def create_ingredient(recipe_id, name, amount, amount_type, grouping):
     with get_connection() as connection:
         with connection.cursor() as cursor:
             cursor.execute(
@@ -431,11 +434,11 @@ def create_ingredient(recipe_id, name, amount, amount_type):
 
             cursor.execute(
                 """
-                insert into ingredients (recipe_version_id, name, amount, amount_type)
-                values (%s, %s, %s, %s)
-                returning id, recipe_version_id, name, amount, amount_type, created_at
+                insert into ingredients (recipe_version_id, name, amount, amount_type, grouping)
+                values (%s, %s, %s, %s, %s)
+                returning id, recipe_version_id, name, amount, amount_type, grouping, created_at
                 """,
-                (active_version["id"], name, amount, amount_type),
+                (active_version["id"], name, amount, amount_type, grouping),
             )
             ingredient = cursor.fetchone()
 
@@ -445,6 +448,55 @@ def create_ingredient(recipe_id, name, amount, amount_type):
         "ingredient": serialize_ingredient_row(ingredient),
         "active_version": serialize_recipe_version_row(active_version),
     }, None
+
+
+def update_ingredient(recipe_id, ingredient_id, name, amount, amount_type, grouping):
+    with get_connection() as connection:
+        with connection.cursor() as cursor:
+            cursor.execute(
+                """
+                update ingredients
+                set
+                    name = %s,
+                    amount = %s,
+                    amount_type = %s,
+                    grouping = %s
+                where id = %s
+                    and exists (
+                        select 1
+                        from recipe_versions rv
+                        inner join recipes r on r.id = rv.recipe_id
+                        where rv.id = ingredients.recipe_version_id
+                            and rv.recipe_id = %s
+                            and rv.deleted_at is null
+                            and r.deleted_at is null
+                    )
+                returning
+                    id,
+                    recipe_version_id,
+                    name,
+                    amount,
+                    amount_type,
+                    grouping,
+                    created_at
+                """,
+                (
+                    name,
+                    amount,
+                    amount_type,
+                    grouping,
+                    ingredient_id,
+                    recipe_id,
+                ),
+            )
+            ingredient = cursor.fetchone()
+
+            if ingredient is None:
+                return None, "ingredient not found"
+
+        connection.commit()
+
+    return {"ingredient": serialize_ingredient_row(ingredient)}, None
 
 
 def create_instruction(recipe_id, title):

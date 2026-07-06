@@ -105,7 +105,12 @@ export async function createRecipeVersion(
 
 export async function createIngredient(
   recipeId: string,
-  payload: { name: string; amount: number; amount_type: IngredientAmountType }
+  payload: {
+    name: string;
+    amount: number;
+    amount_type: IngredientAmountType;
+    grouping?: string;
+  }
 ): Promise<{ ingredient: Ingredient; active_version: RecipeVersionSummary }> {
   const response = await fetch(`/api/recipes/${recipeId}/ingredients`, {
     method: "POST",
@@ -118,6 +123,26 @@ export async function createIngredient(
     ingredient: Ingredient;
     active_version: RecipeVersionSummary;
   }>(response);
+}
+
+export async function updateIngredient(
+  recipeId: string,
+  ingredientId: string,
+  payload: {
+    name: string;
+    amount: number;
+    amount_type: IngredientAmountType;
+    grouping?: string;
+  }
+): Promise<{ ingredient: Ingredient }> {
+  const response = await fetch(`/api/recipes/${recipeId}/ingredients/${ingredientId}`, {
+    method: "PATCH",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(payload),
+  });
+  return parseResponse<{ ingredient: Ingredient }>(response);
 }
 
 export async function deleteRecipeVersion(
