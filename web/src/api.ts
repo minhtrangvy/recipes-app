@@ -208,6 +208,25 @@ export async function createStep(
   return parseResponse<{ step: Step }>(response);
 }
 
+export async function updateStep(
+  recipeId: string,
+  instructionId: string,
+  stepId: string,
+  body: string
+): Promise<{ step: Step }> {
+  const response = await fetch(
+    `/api/recipes/${recipeId}/instructions/${instructionId}/steps/${stepId}`,
+    {
+      method: "PATCH",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ body }),
+    }
+  );
+  return parseResponse<{ step: Step }>(response);
+}
+
 export async function deleteStep(
   recipeId: string,
   instructionId: string,

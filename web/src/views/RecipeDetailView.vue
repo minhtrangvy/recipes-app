@@ -15,6 +15,7 @@ import {
   deleteRecipeVersion,
   deleteStep,
   fetchRecipe,
+  updateStep,
   updateIngredient,
 } from "../api";
 import RecipeImportReview from "../components/RecipeImportReview.vue";
@@ -61,6 +62,9 @@ const isSavingInstruction = ref(false);
 const deletingInstructionId = ref("");
 const stepBodies = ref<Record<string, string>>({});
 const savingStepInstructionId = ref("");
+const editingStepIds = ref<Record<string, boolean>>({});
+const stepEditBodies = ref<Record<string, string>>({});
+const savingEditedStepId = ref("");
 const deletingStepId = ref("");
 const isVersionHistoryVisible = ref(false);
 const ingredientNoteBodies = ref<Record<string, string>>({});
@@ -282,6 +286,39 @@ async function removeStep(instructionId: string, stepId: string) {
       error instanceof Error ? error.message : "Unable to delete step";
   } finally {
     deletingStepId.value = "";
+  }
+}
+
+function beginStepEdit(stepId: string, body: string) {
+  editingStepIds.value[stepId] = true;
+  stepEditBodies.value[stepId] = body;
+}
+
+function cancelStepEdit(stepId: string) {
+  editingStepIds.value[stepId] = false;
+  delete stepEditBodies.value[stepId];
+}
+
+async function saveStep(instructionId: string, stepId: string) {
+  const recipeId = route.params.recipeId;
+  const body = (stepEditBodies.value[stepId] || "").trim();
+  if (typeof recipeId !== "string" || !body) {
+    return;
+  }
+
+  savingEditedStepId.value = stepId;
+  errorMessage.value = "";
+
+  try {
+    await updateStep(recipeId, instructionId, stepId, body);
+    editingStepIds.value[stepId] = false;
+    delete stepEditBodies.value[stepId];
+    await loadRecipe();
+  } catch (error) {
+    errorMessage.value =
+      error instanceof Error ? error.message : "Unable to save step";
+  } finally {
+    savingEditedStepId.value = "";
   }
 }
 
@@ -563,6 +600,9 @@ onMounted(loadRecipe);
         :deleting-instruction-id="deletingInstructionId"
         :step-bodies="stepBodies"
         :saving-step-instruction-id="savingStepInstructionId"
+        :editing-step-ids="editingStepIds"
+        :step-edit-bodies="stepEditBodies"
+        :saving-edited-step-id="savingEditedStepId"
         :deleting-step-id="deletingStepId"
         :showing-step-note-forms="showingStepNoteForms"
         :step-note-bodies="stepNoteBodies"
@@ -571,6 +611,9 @@ onMounted(loadRecipe);
         @add-instruction="addInstruction"
         @remove-instruction="removeInstruction"
         @add-step="addStep"
+        @begin-step-edit="beginStepEdit"
+        @save-step="saveStep"
+        @cancel-step-edit="cancelStepEdit"
         @remove-step="removeStep"
         @show-note-form="showStepNoteForm"
         @add-note="addStepNote"

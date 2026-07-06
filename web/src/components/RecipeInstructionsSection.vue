@@ -8,6 +8,9 @@ const props = defineProps<{
   deletingInstructionId: string;
   stepBodies: Record<string, string>;
   savingStepInstructionId: string;
+  editingStepIds: Record<string, boolean>;
+  stepEditBodies: Record<string, string>;
+  savingEditedStepId: string;
   deletingStepId: string;
   showingStepNoteForms: Record<string, boolean>;
   stepNoteBodies: Record<string, string>;
@@ -19,6 +22,9 @@ defineEmits<{
   (event: "add-instruction"): void;
   (event: "remove-instruction", instructionId: string): void;
   (event: "add-step", instructionId: string): void;
+  (event: "begin-step-edit", stepId: string, body: string): void;
+  (event: "save-step", instructionId: string, stepId: string): void;
+  (event: "cancel-step-edit", stepId: string): void;
   (event: "remove-step", instructionId: string, stepId: string): void;
   (event: "show-note-form", stepId: string): void;
   (event: "add-note", stepId: string): void;
@@ -75,21 +81,49 @@ defineEmits<{
       <ol v-if="instruction.steps.length > 0">
         <li v-for="step in instruction.steps" :key="step.id">
           <div class="item-with-note">
-            <div class="step-row">
+            <div v-if="props.editingStepIds[step.id]" class="step-edit-row">
+              <input
+                v-model="props.stepEditBodies[step.id]"
+                type="text"
+                placeholder="Step"
+              />
+              <button
+                type="button"
+                :disabled="props.savingEditedStepId !== ''"
+                @click="$emit('save-step', instruction.id, step.id)"
+              >
+                {{
+                  props.savingEditedStepId === step.id ? "Saving..." : "Save"
+                }}
+              </button>
+              <button type="button" @click="$emit('cancel-step-edit', step.id)">
+                Cancel
+              </button>
+            </div>
+            <div v-else class="step-row">
               <span>{{ step.body }}</span>
               <div class="item-actions">
                 <button
                   v-if="!props.showingStepNoteForms[step.id]"
                   type="button"
                   class="icon-button compact-button"
+                  aria-label="Add note"
                   @click="$emit('show-note-form', step.id)"
                 >
-                  Add note
+                  💭
                 </button>
-                <button
-                  type="button"
-                  class="danger-button"
-                  :disabled="props.deletingStepId !== ''"
+                    <button
+                      type="button"
+                      class="icon-button"
+                      aria-label="Edit step"
+                      @click="$emit('begin-step-edit', step.id, step.body)"
+                    >
+                      ✎
+                    </button>
+                    <button
+                      type="button"
+                      class="danger-button"
+                      :disabled="props.deletingStepId !== ''"
                   :aria-label="
                     props.deletingStepId === step.id ? 'Deleting step' : 'Delete step'
                   "
@@ -209,6 +243,12 @@ button {
   display: flex;
   justify-content: space-between;
   gap: 16px;
+  align-items: center;
+}
+
+.step-edit-row {
+  display: flex;
+  gap: 12px;
   align-items: center;
 }
 

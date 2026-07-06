@@ -214,9 +214,10 @@ function formatAmount(amount: number) {
                       v-if="!props.showingIngredientNoteForms[ingredient.id]"
                       type="button"
                       class="icon-button compact-button"
+                      aria-label="Add note"
                       @click="$emit('show-note-form', ingredient.id)"
                     >
-                      Add note
+                      💭
                     </button>
                     <button
                       type="button"

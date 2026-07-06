@@ -146,6 +146,20 @@ def create_step(recipe_id, instruction_id):
     return jsonify(result), 201
 
 
+@app.patch("/api/recipes/<recipe_id>/instructions/<instruction_id>/steps/<step_id>")
+def update_step(recipe_id, instruction_id, step_id):
+    payload = request.get_json(silent=True) or {}
+    body = (payload.get("body") or "").strip()
+    if not body:
+        return {"error": "body is required"}, 400
+
+    result, error = recipe_queries.update_step(recipe_id, instruction_id, step_id, body)
+    if error is not None:
+        return {"error": error}, 404
+
+    return jsonify(result)
+
+
 @app.delete("/api/recipes/<recipe_id>/instructions/<instruction_id>/steps/<step_id>")
 def delete_step(recipe_id, instruction_id, step_id):
     error = recipe_queries.delete_step(recipe_id, instruction_id, step_id)

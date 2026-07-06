@@ -647,6 +647,39 @@ def create_step(recipe_id, instruction_id, body):
     return {"step": serialize_step_row(step)}, None
 
 
+def update_step(recipe_id, instruction_id, step_id, body):
+    with get_connection() as connection:
+        with connection.cursor() as cursor:
+            cursor.execute(
+                """
+                update steps
+                set body = %s
+                where id = %s
+                    and instruction_id = %s
+                    and exists (
+                        select 1
+                        from instructions i
+                        inner join recipe_versions rv on rv.id = i.recipe_version_id
+                        inner join recipes r on r.id = rv.recipe_id
+                        where i.id = %s
+                            and rv.recipe_id = %s
+                            and rv.deleted_at is null
+                            and r.deleted_at is null
+                    )
+                returning id, instruction_id, step_number, body, created_at
+                """,
+                (body, step_id, instruction_id, instruction_id, recipe_id),
+            )
+            step = cursor.fetchone()
+
+            if step is None:
+                return None, "step not found"
+
+        connection.commit()
+
+    return {"step": serialize_step_row(step)}, None
+
+
 def delete_instruction(recipe_id, instruction_id):
     with get_connection() as connection:
         with connection.cursor() as cursor:
