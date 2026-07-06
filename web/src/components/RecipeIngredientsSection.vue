@@ -230,7 +230,7 @@ function formatAmount(amount: number) {
                 </div>
                 <div v-if="ingredient.notes.length > 0" class="note-stack">
                   <div v-for="note in ingredient.notes" :key="note.id" class="note-callout">
-                    Important note: {{ note.body }}
+                    {{ note.body }}
                   </div>
                 </div>
                 <form

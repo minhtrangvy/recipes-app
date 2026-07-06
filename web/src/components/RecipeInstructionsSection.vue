@@ -101,7 +101,7 @@ defineEmits<{
             </div>
             <div v-if="step.notes.length > 0" class="note-stack">
               <div v-for="note in step.notes" :key="note.id" class="note-callout">
-                Important note: {{ note.body }}
+                {{ note.body }}
               </div>
             </div>
             <form
