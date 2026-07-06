@@ -34,6 +34,7 @@ const isLoading = ref(true);
 const isCreatingVersion = ref(false);
 const isSavingIngredient = ref(false);
 const savingIngredientId = ref("");
+const editingIngredientIds = ref<Record<string, boolean>>({});
 const deletingVersionId = ref("");
 const isDeletingRecipe = ref(false);
 const ingredientName = ref("");
@@ -165,6 +166,7 @@ async function saveIngredient(ingredient: Ingredient) {
       amount_type: ingredient.amount_type,
       grouping: ingredient.grouping.trim(),
     });
+    editingIngredientIds.value[ingredient.id] = false;
     await loadRecipe();
   } catch (error) {
     errorMessage.value =
@@ -172,6 +174,15 @@ async function saveIngredient(ingredient: Ingredient) {
   } finally {
     savingIngredientId.value = "";
   }
+}
+
+function beginIngredientEdit(ingredientId: string) {
+  editingIngredientIds.value[ingredientId] = true;
+}
+
+function cancelIngredientEdit(ingredientId: string) {
+  editingIngredientIds.value[ingredientId] = false;
+  void loadRecipe();
 }
 
 async function addVersion() {
@@ -590,7 +601,7 @@ onMounted(loadRecipe);
             <h4 v-if="group.grouping">{{ group.grouping }}</h4>
             <ul>
               <li v-for="ingredient in group.ingredients" :key="ingredient.id">
-                <div class="ingredient-edit-row">
+                <div v-if="editingIngredientIds[ingredient.id]" class="ingredient-edit-row">
                   <input v-model="ingredient.name" type="text" placeholder="Ingredient name" />
                   <input
                     v-model.number="ingredient.amount"
@@ -615,12 +626,25 @@ onMounted(loadRecipe);
                   >
                     {{ savingIngredientId === ingredient.id ? "Saving..." : "Save" }}
                   </button>
+                  <button type="button" @click="cancelIngredientEdit(ingredient.id)">
+                    Cancel
+                  </button>
                 </div>
-                <p class="ingredient-preview">
-                  {{ formatAmount(ingredient.amount) }}
-                  {{ amountTypeLabel(ingredient.amount_type) }}
-                  {{ ingredient.name }}
-                </p>
+                <div v-else class="ingredient-display-row">
+                  <p class="ingredient-preview">
+                    {{ formatAmount(ingredient.amount) }}
+                    {{ amountTypeLabel(ingredient.amount_type) }}
+                    {{ ingredient.name }}
+                  </p>
+                  <button
+                    type="button"
+                    class="icon-button"
+                    aria-label="Edit ingredient"
+                    @click="beginIngredientEdit(ingredient.id)"
+                  >
+                    ✎
+                  </button>
+                </div>
               </li>
             </ul>
           </div>
@@ -848,8 +872,22 @@ button:disabled {
   align-items: center;
 }
 
+.ingredient-display-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: center;
+}
+
 .ingredient-preview {
   margin: 8px 0 0;
+}
+
+.icon-button {
+  padding: 4px 8px;
+  background: transparent;
+  color: #1e1a16;
+  border: 1px solid #a99987;
 }
 
 ul {
