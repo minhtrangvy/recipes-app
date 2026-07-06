@@ -543,8 +543,14 @@ onMounted(loadRecipe);
         <p class="recipe-category">{{ recipe.category }}</p>
         <h2>{{ recipe.name }}</h2>
         <p v-if="recipe.inspiration_url">
-          <a :href="recipe.inspiration_url" target="_blank" rel="noreferrer">
-            {{ recipe.inspiration_url }}
+          <a
+            :href="recipe.inspiration_url"
+            target="_blank"
+            rel="noreferrer"
+            aria-label="Open inspiration URL"
+            title="Open inspiration URL"
+          >
+            🔗
           </a>
         </p>
         <button
