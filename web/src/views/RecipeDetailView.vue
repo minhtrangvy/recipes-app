@@ -855,31 +855,38 @@ onMounted(loadRecipe);
               <div class="item-with-note">
                 <div class="step-row">
                   <span>{{ step.body }}</span>
-                  <button
-                    type="button"
-                    class="danger-button"
-                    :disabled="deletingStepId !== ''"
-                    :aria-label="
-                      deletingStepId === step.id ? 'Deleting step' : 'Delete step'
-                    "
-                    @click="removeStep(instruction.id, step.id)"
-                  >
-                    {{ deletingStepId === step.id ? "Deleting..." : "🗑️" }}
-                  </button>
+                  <div class="item-actions">
+                    <button
+                      v-if="!showingStepNoteForms[step.id]"
+                      type="button"
+                      class="icon-button compact-button"
+                      @click="showStepNoteForm(step.id)"
+                    >
+                      Add note
+                    </button>
+                    <button
+                      type="button"
+                      class="danger-button"
+                      :disabled="deletingStepId !== ''"
+                      :aria-label="
+                        deletingStepId === step.id ? 'Deleting step' : 'Delete step'
+                      "
+                      @click="removeStep(instruction.id, step.id)"
+                    >
+                      {{ deletingStepId === step.id ? "Deleting..." : "🗑️" }}
+                    </button>
+                  </div>
                 </div>
                 <div v-if="step.notes.length > 0" class="note-stack">
                   <div v-for="note in step.notes" :key="note.id" class="note-callout">
                     Important note: {{ note.body }}
                   </div>
                 </div>
-                <button
-                  v-if="!showingStepNoteForms[step.id]"
-                  type="button"
-                  @click="showStepNoteForm(step.id)"
+                <form
+                  v-if="showingStepNoteForms[step.id]"
+                  class="note-form"
+                  @submit.prevent="addStepNote(step.id)"
                 >
-                  Add note
-                </button>
-                <form v-else class="note-form" @submit.prevent="addStepNote(step.id)">
                   <input
                     v-model="stepNoteBodies[step.id]"
                     type="text"
