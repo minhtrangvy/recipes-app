@@ -11,7 +11,9 @@ export type IngredientAmountType =
   | "teaspoon"
   | "tablespoon"
   | "dash"
+  | "count"
   | "pounds"
+  | "to taste"
   | "weight_g";
 
 export interface RecipeSummary {

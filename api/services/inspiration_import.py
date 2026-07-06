@@ -23,7 +23,7 @@ def import_recipe_from_url(inspiration_url: str) -> dict[str, Any]:
                 "content": (
                     "Extract recipe data from the provided page text. "
                     "Return only valid JSON with this shape: "
-                    '{"ingredients":[{"name":"string","amount":1,"amount_type":"cup|teaspoon|tablespoon|dash|pounds|weight_g"}],'
+                    '{"ingredients":[{"name":"string","amount":1,"amount_type":"cup|teaspoon|tablespoon|dash|count|pounds|to taste|weight_g"}],'
                     '"instructions":[{"title":"string","steps":["string"]}]}. '
                     "Do not include markdown fences or commentary. "
                     "If the page is ambiguous, make the best structured extraction you can."

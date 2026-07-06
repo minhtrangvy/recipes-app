@@ -31,7 +31,9 @@ begin
             'teaspoon',
             'tablespoon',
             'dash',
+            'count',
             'pounds',
+            'to taste',
             'weight_g'
         );
     end if;
@@ -48,6 +50,34 @@ begin
             and e.enumlabel = 'pounds'
     ) then
         alter type ingredient_amount_type add value 'pounds';
+    end if;
+end
+$$;
+
+do $$
+begin
+    if not exists (
+        select 1
+        from pg_enum e
+        join pg_type t on t.oid = e.enumtypid
+        where t.typname = 'ingredient_amount_type'
+            and e.enumlabel = 'to taste'
+    ) then
+        alter type ingredient_amount_type add value 'to taste';
+    end if;
+end
+$$;
+
+do $$
+begin
+    if not exists (
+        select 1
+        from pg_enum e
+        join pg_type t on t.oid = e.enumtypid
+        where t.typname = 'ingredient_amount_type'
+            and e.enumlabel = 'count'
+    ) then
+        alter type ingredient_amount_type add value 'count';
     end if;
 end
 $$;

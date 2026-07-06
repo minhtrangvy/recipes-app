@@ -47,7 +47,9 @@ const amountTypes: IngredientAmountType[] = [
   "teaspoon",
   "tablespoon",
   "dash",
+  "count",
   "pounds",
+  "to taste",
   "weight_g",
 ];
 
@@ -59,6 +61,19 @@ function amountTypeLabel(amountType: IngredientAmountType) {
   }
 
   return amountType;
+}
+
+function formatAmount(amount: number) {
+  const fractionMap: Record<string, string> = {
+    "0.25": "1/4",
+    "0.33": "1/3",
+    "0.5": "1/2",
+    "0.67": "2/3",
+    "0.75": "3/4",
+  };
+
+  const rounded = amount.toFixed(2).replace(/0+$/, "").replace(/\.$/, "");
+  return fractionMap[rounded] || rounded;
 }
 
 async function loadRecipe() {
@@ -476,7 +491,8 @@ onMounted(loadRecipe);
         <p v-if="activeVersion.ingredients.length === 0">No ingredients yet.</p>
         <ul v-else>
           <li v-for="ingredient in activeVersion.ingredients" :key="ingredient.id">
-            {{ ingredient.amount }} {{ amountTypeLabel(ingredient.amount_type) }}
+            {{ formatAmount(ingredient.amount) }}
+            {{ amountTypeLabel(ingredient.amount_type) }}
             {{ ingredient.name }}
           </li>
         </ul>
