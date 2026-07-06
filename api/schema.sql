@@ -202,3 +202,34 @@ alter table steps
 
 alter table steps
     alter column body set not null;
+
+create table if not exists notes (
+    id uuid primary key default gen_random_uuid(),
+    ingredient_id uuid null references ingredients(id) on delete cascade,
+    step_id uuid null references steps(id) on delete cascade,
+    body text not null,
+    created_at timestamptz not null default now(),
+    check (
+        (ingredient_id is not null and step_id is null)
+        or (ingredient_id is null and step_id is not null)
+    )
+);
+
+alter table notes
+    add column if not exists ingredient_id uuid null references ingredients(id) on delete cascade;
+
+alter table notes
+    add column if not exists step_id uuid null references steps(id) on delete cascade;
+
+alter table notes
+    add column if not exists body text;
+
+alter table notes
+    add column if not exists created_at timestamptz not null default now();
+
+update notes
+set body = 'Note'
+where body is null;
+
+alter table notes
+    alter column body set not null;

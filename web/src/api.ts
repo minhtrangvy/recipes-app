@@ -3,6 +3,7 @@ import type {
   Ingredient,
   IngredientAmountType,
   ImportedInstructionDraft,
+  Note,
   RecipeImportDraft,
   Instruction,
   RecipeDetail,
@@ -219,4 +220,34 @@ export async function deleteStep(
     }
   );
   await parseResponse(response);
+}
+
+export async function createIngredientNote(
+  recipeId: string,
+  ingredientId: string,
+  body: string
+): Promise<{ note: Note }> {
+  const response = await fetch(`/api/recipes/${recipeId}/ingredients/${ingredientId}/notes`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ body }),
+  });
+  return parseResponse<{ note: Note }>(response);
+}
+
+export async function createStepNote(
+  recipeId: string,
+  stepId: string,
+  body: string
+): Promise<{ note: Note }> {
+  const response = await fetch(`/api/recipes/${recipeId}/steps/${stepId}/notes`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ body }),
+  });
+  return parseResponse<{ note: Note }>(response);
 }

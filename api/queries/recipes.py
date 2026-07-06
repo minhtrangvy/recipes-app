@@ -20,6 +20,7 @@ def serialize_ingredient_row(row):
         "amount": float(row["amount"]),
         "amount_type": row["amount_type"],
         "grouping": row["grouping"] or "",
+        "notes": [],
         "created_at": row["created_at"].isoformat(),
     }
 
@@ -47,6 +48,17 @@ def serialize_step_row(row):
         "id": str(row["id"]),
         "instruction_id": str(row["instruction_id"]),
         "step_number": row["step_number"],
+        "body": row["body"],
+        "notes": [],
+        "created_at": row["created_at"].isoformat(),
+    }
+
+
+def serialize_note_row(row):
+    return {
+        "id": str(row["id"]),
+        "ingredient_id": str(row["ingredient_id"]) if row["ingredient_id"] else None,
+        "step_id": str(row["step_id"]) if row["step_id"] else None,
         "body": row["body"],
         "created_at": row["created_at"].isoformat(),
     }
@@ -139,6 +151,28 @@ def get_recipe(recipe_id):
                     serialize_ingredient_row(ingredient_row)
                     for ingredient_row in cursor.fetchall()
                 ]
+                ingredient_note_map = {ingredient["id"]: [] for ingredient in version["ingredients"]}
+                if ingredient_note_map:
+                    cursor.execute(
+                        """
+                        select
+                            id,
+                            ingredient_id,
+                            step_id,
+                            body,
+                            created_at
+                        from notes
+                        where ingredient_id = any(%s)
+                        order by created_at asc, id asc
+                        """,
+                        (list(ingredient_note_map.keys()),),
+                    )
+                    for note_row in cursor.fetchall():
+                        ingredient_note_map[str(note_row["ingredient_id"])].append(
+                            serialize_note_row(note_row)
+                        )
+                    for ingredient in version["ingredients"]:
+                        ingredient["notes"] = ingredient_note_map[ingredient["id"]]
 
                 cursor.execute(
                     """
@@ -174,6 +208,28 @@ def get_recipe(recipe_id):
                         serialize_step_row(step_row)
                         for step_row in cursor.fetchall()
                     ]
+                    step_note_map = {step["id"]: [] for step in instruction["steps"]}
+                    if step_note_map:
+                        cursor.execute(
+                            """
+                            select
+                                id,
+                                ingredient_id,
+                                step_id,
+                                body,
+                                created_at
+                            from notes
+                            where step_id = any(%s)
+                            order by created_at asc, id asc
+                            """,
+                            (list(step_note_map.keys()),),
+                        )
+                        for note_row in cursor.fetchall():
+                            step_note_map[str(note_row["step_id"])].append(
+                                serialize_note_row(note_row)
+                            )
+                        for step in instruction["steps"]:
+                            step["notes"] = step_note_map[step["id"]]
                     instructions.append(instruction)
                 version["instructions"] = instructions
                 versions.append(version)
@@ -670,6 +726,63 @@ def delete_step(recipe_id, instruction_id, step_id):
         connection.commit()
 
     return None
+
+
+def create_ingredient_note(recipe_id, ingredient_id, body):
+    with get_connection() as connection:
+        with connection.cursor() as cursor:
+            cursor.execute(
+                """
+                insert into notes (ingredient_id, body)
+                select i.id, %s
+                from ingredients i
+                inner join recipe_versions rv on rv.id = i.recipe_version_id
+                inner join recipes r on r.id = rv.recipe_id
+                where i.id = %s
+                    and rv.recipe_id = %s
+                    and rv.deleted_at is null
+                    and r.deleted_at is null
+                returning id, ingredient_id, step_id, body, created_at
+                """,
+                (body, ingredient_id, recipe_id),
+            )
+            note = cursor.fetchone()
+
+            if note is None:
+                return None, "ingredient not found"
+
+        connection.commit()
+
+    return {"note": serialize_note_row(note)}, None
+
+
+def create_step_note(recipe_id, step_id, body):
+    with get_connection() as connection:
+        with connection.cursor() as cursor:
+            cursor.execute(
+                """
+                insert into notes (step_id, body)
+                select s.id, %s
+                from steps s
+                inner join instructions i on i.id = s.instruction_id
+                inner join recipe_versions rv on rv.id = i.recipe_version_id
+                inner join recipes r on r.id = rv.recipe_id
+                where s.id = %s
+                    and rv.recipe_id = %s
+                    and rv.deleted_at is null
+                    and r.deleted_at is null
+                returning id, ingredient_id, step_id, body, created_at
+                """,
+                (body, step_id, recipe_id),
+            )
+            note = cursor.fetchone()
+
+            if note is None:
+                return None, "step not found"
+
+        connection.commit()
+
+    return {"note": serialize_note_row(note)}, None
 
 
 def delete_recipe_version(recipe_id, version_id):

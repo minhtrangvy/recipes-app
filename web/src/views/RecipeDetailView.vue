@@ -5,6 +5,8 @@ import { useRouter } from "vue-router";
 
 import {
   applyImportDraft,
+  createIngredientNote,
+  createStepNote,
   fetchImportPreview,
   deleteRecipe,
   deleteInstruction,
@@ -56,6 +58,10 @@ const deletingInstructionId = ref("");
 const stepBodies = ref<Record<string, string>>({});
 const savingStepInstructionId = ref("");
 const deletingStepId = ref("");
+const ingredientNoteBodies = ref<Record<string, string>>({});
+const stepNoteBodies = ref<Record<string, string>>({});
+const savingIngredientNoteId = ref("");
+const savingStepNoteId = ref("");
 const isLoadingImportPreview = ref(false);
 const isApplyingImportDraft = ref(false);
 const importDraft = ref<RecipeImportDraft | null>(null);
@@ -311,6 +317,50 @@ async function removeStep(instructionId: string, stepId: string) {
   }
 }
 
+async function addIngredientNote(ingredientId: string) {
+  const recipeId = route.params.recipeId;
+  const body = (ingredientNoteBodies.value[ingredientId] || "").trim();
+  if (typeof recipeId !== "string" || !body) {
+    return;
+  }
+
+  savingIngredientNoteId.value = ingredientId;
+  errorMessage.value = "";
+
+  try {
+    await createIngredientNote(recipeId, ingredientId, body);
+    ingredientNoteBodies.value[ingredientId] = "";
+    await loadRecipe();
+  } catch (error) {
+    errorMessage.value =
+      error instanceof Error ? error.message : "Unable to add ingredient note";
+  } finally {
+    savingIngredientNoteId.value = "";
+  }
+}
+
+async function addStepNote(stepId: string) {
+  const recipeId = route.params.recipeId;
+  const body = (stepNoteBodies.value[stepId] || "").trim();
+  if (typeof recipeId !== "string" || !body) {
+    return;
+  }
+
+  savingStepNoteId.value = stepId;
+  errorMessage.value = "";
+
+  try {
+    await createStepNote(recipeId, stepId, body);
+    stepNoteBodies.value[stepId] = "";
+    await loadRecipe();
+  } catch (error) {
+    errorMessage.value =
+      error instanceof Error ? error.message : "Unable to add step note";
+  } finally {
+    savingStepNoteId.value = "";
+  }
+}
+
 async function removeVersion(versionId: string) {
   const recipeId = route.params.recipeId;
   if (typeof recipeId !== "string") {
@@ -476,19 +526,12 @@ onMounted(loadRecipe);
         </p>
         <button
           type="button"
-          class="danger-button"
+          class="danger-button icon-button danger-icon-button"
           :disabled="isDeletingRecipe"
+          :aria-label="isDeletingRecipe ? 'Deleting recipe' : 'Delete recipe'"
           @click="removeRecipe"
         >
-          {{ isDeletingRecipe ? "Deleting..." : "Delete recipe" }}
-        </button>
-        <button
-          v-if="recipe.inspiration_url"
-          type="button"
-          :disabled="isLoadingImportPreview"
-          @click="loadImportPreview"
-        >
-          {{ isLoadingImportPreview ? "Importing..." : "Preview import from URL" }}
+          {{ isDeletingRecipe ? "Deleting..." : "🗑️" }}
         </button>
       </div>
 
@@ -609,8 +652,8 @@ onMounted(loadRecipe);
               {{ amountTypeLabel(amountType) }}
             </option>
           </select>
-          <button type="submit">
-            {{ isSavingIngredient ? "Saving..." : "Add ingredient" }}
+          <button type="submit" :aria-label="isSavingIngredient ? 'Saving ingredient' : 'Add ingredient'">
+            {{ isSavingIngredient ? "Saving..." : "➕" }}
           </button>
         </form>
 
@@ -662,19 +705,46 @@ onMounted(loadRecipe);
                   </button>
                 </div>
                 <div v-else class="ingredient-display-row">
-                  <p class="ingredient-preview">
-                    {{ formatAmount(ingredient.amount) }}
-                    {{ amountTypeLabel(ingredient.amount_type) }}
-                    {{ ingredient.name }}
-                  </p>
-                  <button
-                    type="button"
-                    class="icon-button"
-                    aria-label="Edit ingredient"
-                    @click="beginIngredientEdit(ingredient)"
-                  >
-                    ✎
-                  </button>
+                  <div class="item-with-note">
+                    <div class="item-main">
+                      <p class="ingredient-preview">
+                        {{ formatAmount(ingredient.amount) }}
+                        {{ amountTypeLabel(ingredient.amount_type) }}
+                        {{ ingredient.name }}
+                      </p>
+                      <button
+                        type="button"
+                        class="icon-button"
+                        aria-label="Edit ingredient"
+                        @click="beginIngredientEdit(ingredient)"
+                      >
+                        ✎
+                      </button>
+                    </div>
+                    <div v-if="ingredient.notes.length > 0" class="note-stack">
+                      <div
+                        v-for="note in ingredient.notes"
+                        :key="note.id"
+                        class="note-callout"
+                      >
+                        Important note: {{ note.body }}
+                      </div>
+                    </div>
+                    <form class="note-form" @submit.prevent="addIngredientNote(ingredient.id)">
+                      <input
+                        v-model="ingredientNoteBodies[ingredient.id]"
+                        type="text"
+                        placeholder="Add note for next time"
+                      />
+                      <button type="submit">
+                        {{
+                          savingIngredientNoteId === ingredient.id
+                            ? "Saving..."
+                            : "Add note"
+                        }}
+                      </button>
+                    </form>
+                  </div>
                 </div>
               </li>
             </ul>
@@ -693,8 +763,11 @@ onMounted(loadRecipe);
             type="text"
             placeholder="Instruction title (optional)"
           />
-          <button type="submit">
-            {{ isSavingInstruction ? "Saving..." : "Add instruction" }}
+          <button
+            type="submit"
+            :aria-label="isSavingInstruction ? 'Saving instruction' : 'Add instruction'"
+          >
+            {{ isSavingInstruction ? "Saving..." : "➕📄" }}
           </button>
         </form>
 
@@ -706,32 +779,53 @@ onMounted(loadRecipe);
           class="instruction-card"
         >
           <div class="instruction-header">
-            <h4>{{ instruction.title || "Untitled instruction" }}</h4>
+            <h4 v-if="instruction.title">{{ instruction.title }}</h4>
             <button
               type="button"
               class="danger-button"
               :disabled="deletingInstructionId !== ''"
+              :aria-label="
+                deletingInstructionId === instruction.id
+                  ? 'Deleting instruction'
+                  : 'Delete instruction'
+              "
               @click="removeInstruction(instruction.id)"
             >
-              {{
-                deletingInstructionId === instruction.id
-                  ? "Deleting..."
-                  : "Delete instruction"
-              }}
+              {{ deletingInstructionId === instruction.id ? "Deleting..." : "🗑️📄" }}
             </button>
           </div>
           <ol v-if="instruction.steps.length > 0">
             <li v-for="step in instruction.steps" :key="step.id">
-              <div class="step-row">
-                <span>{{ step.body }}</span>
-                <button
-                  type="button"
-                  class="danger-button"
-                  :disabled="deletingStepId !== ''"
-                  @click="removeStep(instruction.id, step.id)"
-                >
-                  {{ deletingStepId === step.id ? "Deleting..." : "Delete step" }}
-                </button>
+              <div class="item-with-note">
+                <div class="step-row">
+                  <span>{{ step.body }}</span>
+                  <button
+                    type="button"
+                    class="danger-button"
+                    :disabled="deletingStepId !== ''"
+                    :aria-label="
+                      deletingStepId === step.id ? 'Deleting step' : 'Delete step'
+                    "
+                    @click="removeStep(instruction.id, step.id)"
+                  >
+                    {{ deletingStepId === step.id ? "Deleting..." : "🗑️" }}
+                  </button>
+                </div>
+                <div v-if="step.notes.length > 0" class="note-stack">
+                  <div v-for="note in step.notes" :key="note.id" class="note-callout">
+                    Important note: {{ note.body }}
+                  </div>
+                </div>
+                <form class="note-form" @submit.prevent="addStepNote(step.id)">
+                  <input
+                    v-model="stepNoteBodies[step.id]"
+                    type="text"
+                    placeholder="Add note for next time"
+                  />
+                  <button type="submit">
+                    {{ savingStepNoteId === step.id ? "Saving..." : "Add note" }}
+                  </button>
+                </form>
               </div>
             </li>
           </ol>
@@ -743,9 +837,14 @@ onMounted(loadRecipe);
               type="text"
               placeholder="Add step"
             />
-            <button type="submit">
+            <button
+              type="submit"
+              :aria-label="
+                savingStepInstructionId === instruction.id ? 'Saving step' : 'Add step'
+              "
+            >
               {{
-                savingStepInstructionId === instruction.id ? "Saving..." : "Add step"
+                savingStepInstructionId === instruction.id ? "Saving..." : "➕"
               }}
             </button>
           </form>
@@ -904,10 +1003,7 @@ button:disabled {
 }
 
 .ingredient-display-row {
-  display: flex;
-  justify-content: space-between;
-  gap: 12px;
-  align-items: center;
+  width: 100%;
 }
 
 .ingredient-preview {
@@ -919,6 +1015,41 @@ button:disabled {
   background: transparent;
   color: #1e1a16;
   border: 1px solid #a99987;
+}
+
+.danger-icon-button {
+  color: white;
+  border-color: #8c2f1d;
+}
+
+.item-with-note {
+  display: grid;
+  gap: 10px;
+}
+
+.item-main {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: center;
+}
+
+.note-stack {
+  display: grid;
+  gap: 8px;
+}
+
+.note-callout {
+  padding: 10px 12px;
+  background: #fff1c7;
+  border-left: 4px solid #d68b00;
+  color: #5b3a00;
+  font-weight: 700;
+}
+
+.note-form {
+  display: flex;
+  gap: 12px;
 }
 
 ul {

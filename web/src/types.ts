@@ -49,6 +49,7 @@ export interface Ingredient {
   amount: number;
   amount_type: IngredientAmountType;
   grouping: string;
+  notes: Note[];
   created_at: string;
 }
 
@@ -64,6 +65,15 @@ export interface Step {
   id: string;
   instruction_id: string;
   step_number: number;
+  body: string;
+  notes: Note[];
+  created_at: string;
+}
+
+export interface Note {
+  id: string;
+  ingredient_id: string | null;
+  step_id: string | null;
   body: string;
   created_at: string;
 }
