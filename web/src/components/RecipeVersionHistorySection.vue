@@ -63,6 +63,7 @@ defineEmits<{
   padding: 24px;
   background: #fffaf3;
   border: 1px solid #d4c5b4;
+  border-radius: 12px;
 }
 
 .section-header {

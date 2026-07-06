@@ -63,6 +63,7 @@ function onSubmit() {
   padding: 24px;
   background: #fffaf3;
   border: 1px solid #d4c5b4;
+  border-radius: 12px;
 }
 
 label {
@@ -82,6 +83,7 @@ select {
   width: 100%;
   padding: 10px 12px;
   border: 1px solid #a99987;
+  border-radius: 10px;
   background: white;
 }
 

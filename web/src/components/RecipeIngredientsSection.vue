@@ -350,6 +350,7 @@ function formatAmount(amount: number) {
   padding: 24px;
   background: #fffaf3;
   border: 1px solid #d4c5b4;
+  border-radius: 12px;
 }
 
 .ingredient-form {
@@ -369,6 +370,7 @@ select {
   flex: 1;
   padding: 10px 12px;
   border: 1px solid #a99987;
+  border-radius: 10px;
   background: white;
 }
 
@@ -441,6 +443,7 @@ button {
   padding: 10px 12px;
   background: #fff1c7;
   border-left: 4px solid #d68b00;
+  border-radius: 10px;
   color: #5b3a00;
   font-weight: 700;
 }

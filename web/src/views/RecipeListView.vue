@@ -56,6 +56,7 @@ onMounted(async () => {
   padding: 20px;
   background: #fffaf3;
   border: 1px solid #d4c5b4;
+  border-radius: 12px;
   text-decoration: none;
 }
 
@@ -76,6 +77,7 @@ onMounted(async () => {
   flex-shrink: 0;
   padding: 4px 8px;
   border: 1px solid #a99987;
+  border-radius: 999px;
   font-size: 12px;
   font-weight: 700;
   text-transform: uppercase;
