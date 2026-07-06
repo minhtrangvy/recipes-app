@@ -35,6 +35,17 @@ const isCreatingVersion = ref(false);
 const isSavingIngredient = ref(false);
 const savingIngredientId = ref("");
 const editingIngredientIds = ref<Record<string, boolean>>({});
+const ingredientEditDrafts = ref<
+  Record<
+    string,
+    {
+      name: string;
+      amount: number;
+      amount_type: IngredientAmountType;
+      grouping: string;
+    }
+  >
+>({});
 const deletingVersionId = ref("");
 const isDeletingRecipe = ref(false);
 const ingredientName = ref("");
@@ -156,17 +167,23 @@ async function saveIngredient(ingredient: Ingredient) {
     return;
   }
 
+  const draft = ingredientEditDrafts.value[ingredient.id];
+  if (!draft) {
+    return;
+  }
+
   savingIngredientId.value = ingredient.id;
   errorMessage.value = "";
 
   try {
     await updateIngredient(recipeId, ingredient.id, {
-      name: ingredient.name.trim(),
-      amount: ingredient.amount,
-      amount_type: ingredient.amount_type,
-      grouping: ingredient.grouping.trim(),
+      name: draft.name.trim(),
+      amount: draft.amount,
+      amount_type: draft.amount_type,
+      grouping: draft.grouping.trim(),
     });
     editingIngredientIds.value[ingredient.id] = false;
+    delete ingredientEditDrafts.value[ingredient.id];
     await loadRecipe();
   } catch (error) {
     errorMessage.value =
@@ -176,13 +193,19 @@ async function saveIngredient(ingredient: Ingredient) {
   }
 }
 
-function beginIngredientEdit(ingredientId: string) {
-  editingIngredientIds.value[ingredientId] = true;
+function beginIngredientEdit(ingredient: Ingredient) {
+  editingIngredientIds.value[ingredient.id] = true;
+  ingredientEditDrafts.value[ingredient.id] = {
+    name: ingredient.name,
+    amount: ingredient.amount,
+    amount_type: ingredient.amount_type,
+    grouping: ingredient.grouping,
+  };
 }
 
 function cancelIngredientEdit(ingredientId: string) {
   editingIngredientIds.value[ingredientId] = false;
-  void loadRecipe();
+  delete ingredientEditDrafts.value[ingredientId];
 }
 
 async function addVersion() {
@@ -602,14 +625,18 @@ onMounted(loadRecipe);
             <ul>
               <li v-for="ingredient in group.ingredients" :key="ingredient.id">
                 <div v-if="editingIngredientIds[ingredient.id]" class="ingredient-edit-row">
-                  <input v-model="ingredient.name" type="text" placeholder="Ingredient name" />
                   <input
-                    v-model.number="ingredient.amount"
+                    v-model="ingredientEditDrafts[ingredient.id].name"
+                    type="text"
+                    placeholder="Ingredient name"
+                  />
+                  <input
+                    v-model.number="ingredientEditDrafts[ingredient.id].amount"
                     min="0.01"
                     step="0.01"
                     type="number"
                   />
-                  <select v-model="ingredient.amount_type">
+                  <select v-model="ingredientEditDrafts[ingredient.id].amount_type">
                     <option
                       v-for="amountType in amountTypes"
                       :key="`existing-${ingredient.id}-${amountType}`"
@@ -618,7 +645,11 @@ onMounted(loadRecipe);
                       {{ amountTypeLabel(amountType) }}
                     </option>
                   </select>
-                  <input v-model="ingredient.grouping" type="text" placeholder="Grouping" />
+                  <input
+                    v-model="ingredientEditDrafts[ingredient.id].grouping"
+                    type="text"
+                    placeholder="Grouping"
+                  />
                   <button
                     type="button"
                     :disabled="savingIngredientId !== ''"
@@ -640,7 +671,7 @@ onMounted(loadRecipe);
                     type="button"
                     class="icon-button"
                     aria-label="Edit ingredient"
-                    @click="beginIngredientEdit(ingredient.id)"
+                    @click="beginIngredientEdit(ingredient)"
                   >
                     ✎
                   </button>
