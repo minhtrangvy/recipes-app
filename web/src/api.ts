@@ -2,10 +2,12 @@ import type {
   CreateRecipePayload,
   Ingredient,
   IngredientAmountType,
+  Instruction,
   RecipeDetail,
   RecipeSummary,
   RecipeVersion,
   RecipeVersionSummary,
+  Step,
 } from "./types";
 
 async function parseResponse<T>(response: Response): Promise<T> {
@@ -86,4 +88,39 @@ export async function deleteRecipeVersion(
     method: "DELETE",
   });
   await parseResponse(response);
+}
+
+export async function createInstruction(
+  recipeId: string,
+  title: string
+): Promise<{ instruction: Instruction; active_version: RecipeVersionSummary }> {
+  const response = await fetch(`/api/recipes/${recipeId}/instructions`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ title }),
+  });
+  return parseResponse<{
+    instruction: Instruction;
+    active_version: RecipeVersionSummary;
+  }>(response);
+}
+
+export async function createStep(
+  recipeId: string,
+  instructionId: string,
+  body: string
+): Promise<{ step: Step }> {
+  const response = await fetch(
+    `/api/recipes/${recipeId}/instructions/${instructionId}/steps`,
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ body }),
+    }
+  );
+  return parseResponse<{ step: Step }>(response);
 }

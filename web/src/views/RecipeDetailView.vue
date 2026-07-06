@@ -4,7 +4,9 @@ import { useRoute } from "vue-router";
 
 import {
   createIngredient,
+  createInstruction,
   createRecipeVersion,
+  createStep,
   deleteRecipeVersion,
   fetchRecipe,
 } from "../api";
@@ -20,6 +22,10 @@ const deletingVersionId = ref("");
 const ingredientName = ref("");
 const ingredientAmount = ref(1);
 const ingredientAmountType = ref<IngredientAmountType>("dash");
+const instructionTitle = ref("");
+const isSavingInstruction = ref(false);
+const stepBodies = ref<Record<string, string>>({});
+const savingStepInstructionId = ref("");
 
 const amountTypes: IngredientAmountType[] = [
   "cup",
@@ -93,6 +99,50 @@ async function addVersion() {
       error instanceof Error ? error.message : "Unable to add version";
   } finally {
     isCreatingVersion.value = false;
+  }
+}
+
+async function addInstruction() {
+  const recipeId = route.params.recipeId;
+  const title = instructionTitle.value.trim();
+  if (typeof recipeId !== "string" || !title) {
+    return;
+  }
+
+  isSavingInstruction.value = true;
+  errorMessage.value = "";
+
+  try {
+    await createInstruction(recipeId, title);
+    instructionTitle.value = "";
+    await loadRecipe();
+  } catch (error) {
+    errorMessage.value =
+      error instanceof Error ? error.message : "Unable to add instruction";
+  } finally {
+    isSavingInstruction.value = false;
+  }
+}
+
+async function addStep(instructionId: string) {
+  const recipeId = route.params.recipeId;
+  const body = (stepBodies.value[instructionId] || "").trim();
+  if (typeof recipeId !== "string" || !body) {
+    return;
+  }
+
+  savingStepInstructionId.value = instructionId;
+  errorMessage.value = "";
+
+  try {
+    await createStep(recipeId, instructionId, body);
+    stepBodies.value[instructionId] = "";
+    await loadRecipe();
+  } catch (error) {
+    errorMessage.value =
+      error instanceof Error ? error.message : "Unable to add step";
+  } finally {
+    savingStepInstructionId.value = "";
   }
 }
 
@@ -175,6 +225,52 @@ onMounted(loadRecipe);
         </ul>
       </div>
 
+      <div v-if="activeVersion" class="versions-card">
+        <div class="versions-header">
+          <h3>Instructions</h3>
+        </div>
+
+        <form class="instruction-form" @submit.prevent="addInstruction">
+          <input
+            v-model="instructionTitle"
+            type="text"
+            placeholder="Instruction title"
+          />
+          <button type="submit">
+            {{ isSavingInstruction ? "Saving..." : "Add instruction" }}
+          </button>
+        </form>
+
+        <p v-if="activeVersion.instructions.length === 0">No instructions yet.</p>
+        <div
+          v-else
+          v-for="instruction in activeVersion.instructions"
+          :key="instruction.id"
+          class="instruction-card"
+        >
+          <h4>{{ instruction.title }}</h4>
+          <ol v-if="instruction.steps.length > 0">
+            <li v-for="step in instruction.steps" :key="step.id">
+              {{ step.body }}
+            </li>
+          </ol>
+          <p v-else>No steps yet.</p>
+
+          <form class="instruction-form" @submit.prevent="addStep(instruction.id)">
+            <input
+              v-model="stepBodies[instruction.id]"
+              type="text"
+              placeholder="Add step"
+            />
+            <button type="submit">
+              {{
+                savingStepInstructionId === instruction.id ? "Saving..." : "Add step"
+              }}
+            </button>
+          </form>
+        </div>
+      </div>
+
       <div class="versions-card">
         <div class="versions-header">
           <h3>Versions</h3>
@@ -242,6 +338,12 @@ onMounted(loadRecipe);
   margin-bottom: 16px;
 }
 
+.instruction-form {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
 input,
 select,
 button {
@@ -278,6 +380,10 @@ button:disabled {
   justify-content: space-between;
   gap: 16px;
   align-items: center;
+}
+
+.instruction-card + .instruction-card {
+  margin-top: 20px;
 }
 
 ul {

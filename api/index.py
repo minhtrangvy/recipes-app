@@ -78,6 +78,34 @@ def create_recipe():
     return jsonify(result), 201
 
 
+@app.post("/api/recipes/<recipe_id>/instructions")
+def create_instruction(recipe_id):
+    payload = request.get_json(silent=True) or {}
+    title = (payload.get("title") or "").strip()
+    if not title:
+        return {"error": "title is required"}, 400
+
+    result, error = recipe_queries.create_instruction(recipe_id, title)
+    if error is not None:
+        return {"error": error}, 404
+
+    return jsonify(result), 201
+
+
+@app.post("/api/recipes/<recipe_id>/instructions/<instruction_id>/steps")
+def create_step(recipe_id, instruction_id):
+    payload = request.get_json(silent=True) or {}
+    body = (payload.get("body") or "").strip()
+    if not body:
+        return {"error": "body is required"}, 400
+
+    result, error = recipe_queries.create_step(recipe_id, instruction_id, body)
+    if error is not None:
+        return {"error": error}, 404
+
+    return jsonify(result), 201
+
+
 @app.post("/api/recipes/<recipe_id>/versions")
 def create_recipe_version(recipe_id):
     version, error = recipe_queries.create_recipe_version(recipe_id)
@@ -122,5 +150,14 @@ def delete_recipe_version(recipe_id, version_id):
         return {"error": error}, 404
     if error is not None:
         return {"error": error}, 400
+
+    return "", 204
+
+
+@app.delete("/api/recipes/<recipe_id>")
+def delete_recipe(recipe_id):
+    error = recipe_queries.delete_recipe(recipe_id)
+    if error is not None:
+        return {"error": error}, 404
 
     return "", 204

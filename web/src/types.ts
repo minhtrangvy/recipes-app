@@ -29,6 +29,7 @@ export interface RecipeVersion {
   created_at: string;
   ingredient_count: number;
   ingredients: Ingredient[];
+  instructions: Instruction[];
 }
 
 export interface RecipeVersionSummary {
@@ -44,6 +45,22 @@ export interface Ingredient {
   name: string;
   amount: number;
   amount_type: IngredientAmountType;
+  created_at: string;
+}
+
+export interface Instruction {
+  id: string;
+  recipe_version_id: string;
+  title: string;
+  created_at: string;
+  steps: Step[];
+}
+
+export interface Step {
+  id: string;
+  instruction_id: string;
+  step_number: number;
+  body: string;
   created_at: string;
 }
 
