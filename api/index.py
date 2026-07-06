@@ -1,25 +1,8 @@
 from flask import Flask, jsonify, request
 
+from api.constants import AMOUNT_TYPES, CATEGORIES
 from api.queries import recipes as recipe_queries
 from api.services.inspiration_import import import_recipe_from_url
-
-
-CATEGORIES = (
-    "dessert",
-    "main",
-    "salad",
-    "appetizer",
-    "cocktail",
-    "mocktail",
-)
-
-AMOUNT_TYPES = (
-    "cup",
-    "teaspoon",
-    "tablespoon",
-    "dash",
-    "weight_g",
-)
 
 app = Flask(__name__)
 

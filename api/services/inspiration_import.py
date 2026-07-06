@@ -6,8 +6,9 @@ import requests
 from bs4 import BeautifulSoup
 from openai import OpenAI
 
+from api.constants import AMOUNT_TYPES
 
-AMOUNT_TYPES = {"cup", "teaspoon", "tablespoon", "dash", "weight_g"}
+AMOUNT_TYPE_SET = set(AMOUNT_TYPES)
 
 
 def import_recipe_from_url(inspiration_url: str) -> dict[str, Any]:
@@ -81,7 +82,7 @@ def normalize_import_payload(payload: dict[str, Any]) -> dict[str, Any]:
         if not isinstance(amount, int) or amount <= 0:
             amount = 1
 
-        if amount_type not in AMOUNT_TYPES:
+        if amount_type not in AMOUNT_TYPE_SET:
             amount_type = "dash"
 
         ingredients.append(
