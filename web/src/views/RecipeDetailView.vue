@@ -53,6 +53,14 @@ const amountTypes: IngredientAmountType[] = [
 
 const activeVersion = computed(() => recipe.value?.versions[0] ?? null);
 
+function amountTypeLabel(amountType: IngredientAmountType) {
+  if (amountType === "weight_g") {
+    return "grams";
+  }
+
+  return amountType;
+}
+
 async function loadRecipe() {
   const recipeId = route.params.recipeId;
   if (typeof recipeId !== "string") {
@@ -367,7 +375,7 @@ onMounted(loadRecipe);
               :key="`draft-amount-${amountType}`"
               :value="amountType"
             >
-              {{ amountType }}
+              {{ amountTypeLabel(amountType) }}
             </option>
           </select>
           <button
@@ -457,7 +465,7 @@ onMounted(loadRecipe);
               :key="amountType"
               :value="amountType"
             >
-              {{ amountType }}
+              {{ amountTypeLabel(amountType) }}
             </option>
           </select>
           <button type="submit">
@@ -468,7 +476,8 @@ onMounted(loadRecipe);
         <p v-if="activeVersion.ingredients.length === 0">No ingredients yet.</p>
         <ul v-else>
           <li v-for="ingredient in activeVersion.ingredients" :key="ingredient.id">
-            {{ ingredient.amount }} {{ ingredient.amount_type }} {{ ingredient.name }}
+            {{ ingredient.amount }} {{ amountTypeLabel(ingredient.amount_type) }}
+            {{ ingredient.name }}
           </li>
         </ul>
       </div>
