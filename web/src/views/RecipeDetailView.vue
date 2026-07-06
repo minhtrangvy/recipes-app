@@ -541,27 +541,30 @@ onMounted(loadRecipe);
     <div v-else-if="recipe" class="detail-layout">
       <div>
         <p class="recipe-category">{{ recipe.category }}</p>
-        <h2>{{ recipe.name }}</h2>
-        <p v-if="recipe.inspiration_url">
-          <a
-            :href="recipe.inspiration_url"
-            target="_blank"
-            rel="noreferrer"
-            aria-label="Open inspiration URL"
-            title="Open inspiration URL"
-          >
-            🔗
-          </a>
-        </p>
-        <button
-          type="button"
-          class="danger-button icon-button danger-icon-button"
-          :disabled="isDeletingRecipe"
-          :aria-label="isDeletingRecipe ? 'Deleting recipe' : 'Delete recipe'"
-          @click="removeRecipe"
-        >
-          {{ isDeletingRecipe ? "Deleting..." : "🗑️" }}
-        </button>
+        <div class="recipe-title-row">
+          <h2>{{ recipe.name }}</h2>
+          <div class="recipe-title-actions">
+            <a
+              v-if="recipe.inspiration_url"
+              :href="recipe.inspiration_url"
+              target="_blank"
+              rel="noreferrer"
+              aria-label="Open inspiration URL"
+              title="Open inspiration URL"
+            >
+              🔗
+            </a>
+            <button
+              type="button"
+              class="danger-button icon-button danger-icon-button"
+              :disabled="isDeletingRecipe"
+              :aria-label="isDeletingRecipe ? 'Deleting recipe' : 'Delete recipe'"
+              @click="removeRecipe"
+            >
+              {{ isDeletingRecipe ? "Deleting..." : "🗑️" }}
+            </button>
+          </div>
+        </div>
       </div>
 
       <div v-if="importDraft" class="versions-card">
@@ -970,6 +973,19 @@ onMounted(loadRecipe);
   text-transform: uppercase;
   letter-spacing: 0.08em;
   font-size: 12px;
+}
+
+.recipe-title-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: center;
+}
+
+.recipe-title-actions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
 }
 
 .versions-card {
