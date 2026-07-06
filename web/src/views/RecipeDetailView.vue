@@ -58,6 +58,7 @@ const deletingInstructionId = ref("");
 const stepBodies = ref<Record<string, string>>({});
 const savingStepInstructionId = ref("");
 const deletingStepId = ref("");
+const isVersionHistoryVisible = ref(false);
 const ingredientNoteBodies = ref<Record<string, string>>({});
 const stepNoteBodies = ref<Record<string, string>>({});
 const savingIngredientNoteId = ref("");
@@ -853,34 +854,43 @@ onMounted(loadRecipe);
 
       <div class="versions-card">
         <div class="versions-header">
-          <h3>Versions</h3>
-          <button type="button" @click="addVersion">
-            {{ isCreatingVersion ? "Adding..." : "Add version" }}
+          <h3>Version History</h3>
+          <button type="button" @click="isVersionHistoryVisible = !isVersionHistoryVisible">
+            {{ isVersionHistoryVisible ? "Hide" : "Show" }}
           </button>
         </div>
 
-        <p v-if="recipe.versions.length === 0">No versions yet.</p>
+        <div v-if="isVersionHistoryVisible">
+          <div class="versions-header">
+            <h4>Versions</h4>
+            <button type="button" @click="addVersion">
+              {{ isCreatingVersion ? "Adding..." : "Add version" }}
+            </button>
+          </div>
 
-        <ul v-else>
-          <li v-for="version in recipe.versions" :key="version.id">
-            <div class="version-row">
-              <span>
-                V{{ version.version_number }} ·
-                {{ version.ingredient_count }} ingredients
-              </span>
-              <button
-                type="button"
-                class="danger-button"
-                :disabled="recipe.versions.length === 1 || deletingVersionId !== ''"
-                @click="removeVersion(version.id)"
-              >
-                {{
-                  deletingVersionId === version.id ? "Deleting..." : "Delete version"
-                }}
-              </button>
-            </div>
-          </li>
-        </ul>
+          <p v-if="recipe.versions.length === 0">No versions yet.</p>
+
+          <ul v-else>
+            <li v-for="version in recipe.versions" :key="version.id">
+              <div class="version-row">
+                <span>
+                  V{{ version.version_number }} ·
+                  {{ version.ingredient_count }} ingredients
+                </span>
+                <button
+                  type="button"
+                  class="danger-button"
+                  :disabled="recipe.versions.length === 1 || deletingVersionId !== ''"
+                  @click="removeVersion(version.id)"
+                >
+                  {{
+                    deletingVersionId === version.id ? "Deleting..." : "Delete version"
+                  }}
+                </button>
+              </div>
+            </li>
+          </ul>
+        </div>
       </div>
     </div>
   </section>
