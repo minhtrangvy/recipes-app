@@ -183,6 +183,20 @@ def create_step_note(recipe_id, step_id):
     return jsonify(result), 201
 
 
+@app.patch("/api/recipes/<recipe_id>/steps/<step_id>/notes/<note_id>")
+def update_step_note(recipe_id, step_id, note_id):
+    payload = request.get_json(silent=True) or {}
+    body = (payload.get("body") or "").strip()
+    if not body:
+        return {"error": "body is required"}, 400
+
+    result, error = recipe_queries.update_step_note(recipe_id, step_id, note_id, body)
+    if error is not None:
+        return {"error": error}, 404
+
+    return jsonify(result)
+
+
 @app.post("/api/recipes/<recipe_id>/versions")
 def create_recipe_version(recipe_id):
     version, error = recipe_queries.create_recipe_version(recipe_id)
@@ -265,6 +279,22 @@ def create_ingredient_note(recipe_id, ingredient_id):
         return {"error": error}, 404
 
     return jsonify(result), 201
+
+
+@app.patch("/api/recipes/<recipe_id>/ingredients/<ingredient_id>/notes/<note_id>")
+def update_ingredient_note(recipe_id, ingredient_id, note_id):
+    payload = request.get_json(silent=True) or {}
+    body = (payload.get("body") or "").strip()
+    if not body:
+        return {"error": "body is required"}, 400
+
+    result, error = recipe_queries.update_ingredient_note(
+        recipe_id, ingredient_id, note_id, body
+    )
+    if error is not None:
+        return {"error": error}, 404
+
+    return jsonify(result)
 
 
 @app.delete("/api/recipes/<recipe_id>/versions/<version_id>")

@@ -789,6 +789,39 @@ def create_ingredient_note(recipe_id, ingredient_id, body):
     return {"note": serialize_note_row(note)}, None
 
 
+def update_ingredient_note(recipe_id, ingredient_id, note_id, body):
+    with get_connection() as connection:
+        with connection.cursor() as cursor:
+            cursor.execute(
+                """
+                update notes
+                set body = %s
+                where id = %s
+                    and ingredient_id = %s
+                    and exists (
+                        select 1
+                        from ingredients i
+                        inner join recipe_versions rv on rv.id = i.recipe_version_id
+                        inner join recipes r on r.id = rv.recipe_id
+                        where i.id = %s
+                            and rv.recipe_id = %s
+                            and rv.deleted_at is null
+                            and r.deleted_at is null
+                    )
+                returning id, ingredient_id, step_id, body, created_at
+                """,
+                (body, note_id, ingredient_id, ingredient_id, recipe_id),
+            )
+            note = cursor.fetchone()
+
+            if note is None:
+                return None, "ingredient note not found"
+
+        connection.commit()
+
+    return {"note": serialize_note_row(note)}, None
+
+
 def create_step_note(recipe_id, step_id, body):
     with get_connection() as connection:
         with connection.cursor() as cursor:
@@ -812,6 +845,40 @@ def create_step_note(recipe_id, step_id, body):
 
             if note is None:
                 return None, "step not found"
+
+        connection.commit()
+
+    return {"note": serialize_note_row(note)}, None
+
+
+def update_step_note(recipe_id, step_id, note_id, body):
+    with get_connection() as connection:
+        with connection.cursor() as cursor:
+            cursor.execute(
+                """
+                update notes
+                set body = %s
+                where id = %s
+                    and step_id = %s
+                    and exists (
+                        select 1
+                        from steps s
+                        inner join instructions i on i.id = s.instruction_id
+                        inner join recipe_versions rv on rv.id = i.recipe_version_id
+                        inner join recipes r on r.id = rv.recipe_id
+                        where s.id = %s
+                            and rv.recipe_id = %s
+                            and rv.deleted_at is null
+                            and r.deleted_at is null
+                    )
+                returning id, ingredient_id, step_id, body, created_at
+                """,
+                (body, note_id, step_id, step_id, recipe_id),
+            )
+            note = cursor.fetchone()
+
+            if note is None:
+                return None, "step note not found"
 
         connection.commit()
 

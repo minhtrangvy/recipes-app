@@ -24,6 +24,9 @@ const props = defineProps<{
   showingIngredientNoteForms: Record<string, boolean>;
   ingredientNoteBodies: Record<string, string>;
   savingIngredientNoteId: string;
+  editingIngredientNoteIds: Record<string, boolean>;
+  ingredientNoteEditBodies: Record<string, string>;
+  savingEditedIngredientNoteId: string;
 }>();
 
 defineEmits<{
@@ -38,6 +41,9 @@ defineEmits<{
   (event: "show-note-form", ingredientId: string): void;
   (event: "add-note", ingredientId: string): void;
   (event: "hide-note-form", ingredientId: string): void;
+  (event: "begin-note-edit", noteId: string, body: string): void;
+  (event: "save-note", ingredientId: string, noteId: string): void;
+  (event: "cancel-note-edit", noteId: string): void;
 }>();
 
 const groupedActiveIngredients = computed(() => {
@@ -231,7 +237,41 @@ function formatAmount(amount: number) {
                 </div>
                 <div v-if="ingredient.notes.length > 0" class="note-stack">
                   <div v-for="note in ingredient.notes" :key="note.id" class="note-callout">
-                    {{ note.body }}
+                    <div
+                      v-if="props.editingIngredientNoteIds[note.id]"
+                      class="note-edit-row"
+                    >
+                      <input
+                        v-model="props.ingredientNoteEditBodies[note.id]"
+                        type="text"
+                        placeholder="Edit note"
+                      />
+                      <button
+                        type="button"
+                        :disabled="props.savingEditedIngredientNoteId !== ''"
+                        @click="$emit('save-note', ingredient.id, note.id)"
+                      >
+                        {{
+                          props.savingEditedIngredientNoteId === note.id
+                            ? "Saving..."
+                            : "Save"
+                        }}
+                      </button>
+                      <button type="button" @click="$emit('cancel-note-edit', note.id)">
+                        Cancel
+                      </button>
+                    </div>
+                    <div v-else class="note-callout-row">
+                      <span>{{ note.body }}</span>
+                      <button
+                        type="button"
+                        class="icon-button"
+                        aria-label="Edit note"
+                        @click="$emit('begin-note-edit', note.id, note.body)"
+                      >
+                        ✎
+                      </button>
+                    </div>
                   </div>
                 </div>
                 <form
@@ -370,6 +410,19 @@ button {
   border-left: 4px solid #d68b00;
   color: #5b3a00;
   font-weight: 700;
+}
+
+.note-callout-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: center;
+}
+
+.note-edit-row {
+  display: flex;
+  gap: 12px;
+  align-items: center;
 }
 
 .note-form {

@@ -256,6 +256,25 @@ export async function createIngredientNote(
   return parseResponse<{ note: Note }>(response);
 }
 
+export async function updateIngredientNote(
+  recipeId: string,
+  ingredientId: string,
+  noteId: string,
+  body: string
+): Promise<{ note: Note }> {
+  const response = await fetch(
+    `/api/recipes/${recipeId}/ingredients/${ingredientId}/notes/${noteId}`,
+    {
+      method: "PATCH",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ body }),
+    }
+  );
+  return parseResponse<{ note: Note }>(response);
+}
+
 export async function createStepNote(
   recipeId: string,
   stepId: string,
@@ -263,6 +282,22 @@ export async function createStepNote(
 ): Promise<{ note: Note }> {
   const response = await fetch(`/api/recipes/${recipeId}/steps/${stepId}/notes`, {
     method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ body }),
+  });
+  return parseResponse<{ note: Note }>(response);
+}
+
+export async function updateStepNote(
+  recipeId: string,
+  stepId: string,
+  noteId: string,
+  body: string
+): Promise<{ note: Note }> {
+  const response = await fetch(`/api/recipes/${recipeId}/steps/${stepId}/notes/${noteId}`, {
+    method: "PATCH",
     headers: {
       "Content-Type": "application/json",
     },
