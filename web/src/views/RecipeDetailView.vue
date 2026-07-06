@@ -773,7 +773,7 @@ onMounted(loadRecipe);
                       </div>
                     </div>
                     <form
-                      v-else
+                      v-if="showingIngredientNoteForms[ingredient.id]"
                       class="note-form"
                       @submit.prevent="addIngredientNote(ingredient.id)"
                     >
