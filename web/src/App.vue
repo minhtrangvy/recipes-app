@@ -6,7 +6,6 @@
         <h1>Recipes</h1>
       </div>
       <nav class="app-nav">
-        <RouterLink to="/">All recipes</RouterLink>
         <RouterLink to="/recipes/new">Add recipe</RouterLink>
       </nav>
     </header>
