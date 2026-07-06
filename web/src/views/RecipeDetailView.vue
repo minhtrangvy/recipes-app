@@ -627,7 +627,7 @@ onMounted(loadRecipe);
       <div v-if="activeVersion" class="versions-card">
         <div class="versions-header">
           <h3>Active version</h3>
-          <p>Version {{ activeVersion.version_number }}</p>
+          <p>V{{ activeVersion.version_number }}</p>
         </div>
 
         <form class="ingredient-form" @submit.prevent="addIngredient">
@@ -865,7 +865,7 @@ onMounted(loadRecipe);
           <li v-for="version in recipe.versions" :key="version.id">
             <div class="version-row">
               <span>
-                Version {{ version.version_number }} ·
+                V{{ version.version_number }} ·
                 {{ version.ingredient_count }} ingredients
               </span>
               <button

@@ -2,7 +2,7 @@
   <main class="app-shell">
     <header class="app-header">
       <div>
-        <p class="eyebrow">Recipe Book</p>
+        <p class="eyebrow"><RouterLink to="/">Recipe Book</RouterLink></p>
         <h1>Recipes</h1>
       </div>
       <nav class="app-nav">

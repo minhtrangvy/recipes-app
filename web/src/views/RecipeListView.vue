@@ -34,8 +34,10 @@ onMounted(async () => {
         class="recipe-card"
       >
         <p class="recipe-category">{{ recipe.category }}</p>
-        <h2>{{ recipe.name }}</h2>
-        <p>Version {{ recipe.current_version }}</p>
+        <div class="recipe-title-row">
+          <h2>{{ recipe.name }}</h2>
+          <span class="version-tag">V{{ recipe.current_version }}</span>
+        </div>
         <p v-if="recipe.inspiration_url">{{ recipe.inspiration_url }}</p>
       </RouterLink>
     </div>
@@ -60,6 +62,23 @@ onMounted(async () => {
 .recipe-card h2,
 .recipe-card p {
   margin: 0 0 8px;
+}
+
+.recipe-title-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: start;
+  margin-bottom: 8px;
+}
+
+.version-tag {
+  flex-shrink: 0;
+  padding: 4px 8px;
+  border: 1px solid #a99987;
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
 }
 
 .recipe-category {
