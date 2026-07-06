@@ -1,8 +1,10 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from "vue";
 import { useRoute } from "vue-router";
+import { useRouter } from "vue-router";
 
 import {
+  deleteRecipe,
   createIngredient,
   createInstruction,
   createRecipeVersion,
@@ -13,12 +15,14 @@ import {
 import type { IngredientAmountType, RecipeDetail } from "../types";
 
 const route = useRoute();
+const router = useRouter();
 const recipe = ref<RecipeDetail | null>(null);
 const errorMessage = ref("");
 const isLoading = ref(true);
 const isCreatingVersion = ref(false);
 const isSavingIngredient = ref(false);
 const deletingVersionId = ref("");
+const isDeletingRecipe = ref(false);
 const ingredientName = ref("");
 const ingredientAmount = ref(1);
 const ingredientAmountType = ref<IngredientAmountType>("dash");
@@ -166,6 +170,26 @@ async function removeVersion(versionId: string) {
   }
 }
 
+async function removeRecipe() {
+  const recipeId = route.params.recipeId;
+  if (typeof recipeId !== "string") {
+    return;
+  }
+
+  isDeletingRecipe.value = true;
+  errorMessage.value = "";
+
+  try {
+    await deleteRecipe(recipeId);
+    await router.push("/");
+  } catch (error) {
+    errorMessage.value =
+      error instanceof Error ? error.message : "Unable to delete recipe";
+  } finally {
+    isDeletingRecipe.value = false;
+  }
+}
+
 onMounted(loadRecipe);
 </script>
 
@@ -183,6 +207,14 @@ onMounted(loadRecipe);
             {{ recipe.inspiration_url }}
           </a>
         </p>
+        <button
+          type="button"
+          class="danger-button"
+          :disabled="isDeletingRecipe"
+          @click="removeRecipe"
+        >
+          {{ isDeletingRecipe ? "Deleting..." : "Delete recipe" }}
+        </button>
       </div>
 
       <div v-if="activeVersion" class="versions-card">

@@ -90,6 +90,13 @@ export async function deleteRecipeVersion(
   await parseResponse(response);
 }
 
+export async function deleteRecipe(recipeId: string): Promise<void> {
+  const response = await fetch(`/api/recipes/${recipeId}`, {
+    method: "DELETE",
+  });
+  await parseResponse(response);
+}
+
 export async function createInstruction(
   recipeId: string,
   title: string
