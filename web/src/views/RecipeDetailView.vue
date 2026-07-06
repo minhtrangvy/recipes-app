@@ -61,6 +61,8 @@ const deletingStepId = ref("");
 const isVersionHistoryVisible = ref(false);
 const ingredientNoteBodies = ref<Record<string, string>>({});
 const stepNoteBodies = ref<Record<string, string>>({});
+const showingIngredientNoteForms = ref<Record<string, boolean>>({});
+const showingStepNoteForms = ref<Record<string, boolean>>({});
 const savingIngredientNoteId = ref("");
 const savingStepNoteId = ref("");
 const isLoadingImportPreview = ref(false);
@@ -331,6 +333,7 @@ async function addIngredientNote(ingredientId: string) {
   try {
     await createIngredientNote(recipeId, ingredientId, body);
     ingredientNoteBodies.value[ingredientId] = "";
+    showingIngredientNoteForms.value[ingredientId] = false;
     await loadRecipe();
   } catch (error) {
     errorMessage.value =
@@ -353,6 +356,7 @@ async function addStepNote(stepId: string) {
   try {
     await createStepNote(recipeId, stepId, body);
     stepNoteBodies.value[stepId] = "";
+    showingStepNoteForms.value[stepId] = false;
     await loadRecipe();
   } catch (error) {
     errorMessage.value =
@@ -360,6 +364,24 @@ async function addStepNote(stepId: string) {
   } finally {
     savingStepNoteId.value = "";
   }
+}
+
+function showIngredientNoteForm(ingredientId: string) {
+  showingIngredientNoteForms.value[ingredientId] = true;
+}
+
+function hideIngredientNoteForm(ingredientId: string) {
+  showingIngredientNoteForms.value[ingredientId] = false;
+  ingredientNoteBodies.value[ingredientId] = "";
+}
+
+function showStepNoteForm(stepId: string) {
+  showingStepNoteForms.value[stepId] = true;
+}
+
+function hideStepNoteForm(stepId: string) {
+  showingStepNoteForms.value[stepId] = false;
+  stepNoteBodies.value[stepId] = "";
 }
 
 async function removeVersion(versionId: string) {
@@ -731,18 +753,39 @@ onMounted(loadRecipe);
                         Important note: {{ note.body }}
                       </div>
                     </div>
-                    <form class="note-form" @submit.prevent="addIngredientNote(ingredient.id)">
+                    <button
+                      v-if="!showingIngredientNoteForms[ingredient.id]"
+                      type="button"
+                      @click="showIngredientNoteForm(ingredient.id)"
+                    >
+                      Add note
+                    </button>
+                    <form
+                      v-else
+                      class="note-form"
+                      @submit.prevent="addIngredientNote(ingredient.id)"
+                    >
                       <input
                         v-model="ingredientNoteBodies[ingredient.id]"
                         type="text"
                         placeholder="Add note for next time"
                       />
-                      <button type="submit">
+                      <button
+                        type="submit"
+                        :aria-label="
+                          savingIngredientNoteId === ingredient.id
+                            ? 'Saving note'
+                            : 'Save note'
+                        "
+                      >
                         {{
                           savingIngredientNoteId === ingredient.id
                             ? "Saving..."
-                            : "Add note"
+                            : "☑"
                         }}
+                      </button>
+                      <button type="button" @click="hideIngredientNoteForm(ingredient.id)">
+                        Cancel
                       </button>
                     </form>
                   </div>
@@ -817,15 +860,26 @@ onMounted(loadRecipe);
                     Important note: {{ note.body }}
                   </div>
                 </div>
-                <form class="note-form" @submit.prevent="addStepNote(step.id)">
+                <button
+                  v-if="!showingStepNoteForms[step.id]"
+                  type="button"
+                  @click="showStepNoteForm(step.id)"
+                >
+                  Add note
+                </button>
+                <form v-else class="note-form" @submit.prevent="addStepNote(step.id)">
                   <input
                     v-model="stepNoteBodies[step.id]"
                     type="text"
                     placeholder="Add note for next time"
                   />
-                  <button type="submit">
-                    {{ savingStepNoteId === step.id ? "Saving..." : "Add note" }}
+                  <button
+                    type="submit"
+                    :aria-label="savingStepNoteId === step.id ? 'Saving note' : 'Save note'"
+                  >
+                    {{ savingStepNoteId === step.id ? "Saving..." : "☑" }}
                   </button>
+                  <button type="button" @click="hideStepNoteForm(step.id)">Cancel</button>
                 </form>
               </div>
             </li>
