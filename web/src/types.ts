@@ -64,6 +64,22 @@ export interface Step {
   created_at: string;
 }
 
+export interface ImportedIngredientDraft {
+  name: string;
+  amount: number;
+  amount_type: IngredientAmountType;
+}
+
+export interface ImportedInstructionDraft {
+  title: string;
+  steps: string[];
+}
+
+export interface RecipeImportDraft {
+  ingredients: ImportedIngredientDraft[];
+  instructions: ImportedInstructionDraft[];
+}
+
 export interface RecipeDetail {
   id: string;
   name: string;

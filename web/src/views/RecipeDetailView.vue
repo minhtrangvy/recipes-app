@@ -4,6 +4,8 @@ import { useRoute } from "vue-router";
 import { useRouter } from "vue-router";
 
 import {
+  applyImportDraft,
+  fetchImportPreview,
   deleteRecipe,
   createIngredient,
   createInstruction,
@@ -12,7 +14,13 @@ import {
   deleteRecipeVersion,
   fetchRecipe,
 } from "../api";
-import type { IngredientAmountType, RecipeDetail } from "../types";
+import type {
+  ImportedIngredientDraft,
+  ImportedInstructionDraft,
+  IngredientAmountType,
+  RecipeDetail,
+  RecipeImportDraft,
+} from "../types";
 
 const route = useRoute();
 const router = useRouter();
@@ -30,6 +38,9 @@ const instructionTitle = ref("");
 const isSavingInstruction = ref(false);
 const stepBodies = ref<Record<string, string>>({});
 const savingStepInstructionId = ref("");
+const isLoadingImportPreview = ref(false);
+const isApplyingImportDraft = ref(false);
+const importDraft = ref<RecipeImportDraft | null>(null);
 
 const amountTypes: IngredientAmountType[] = [
   "cup",
@@ -190,6 +201,112 @@ async function removeRecipe() {
   }
 }
 
+async function loadImportPreview() {
+  const recipeId = route.params.recipeId;
+  if (typeof recipeId !== "string") {
+    return;
+  }
+
+  isLoadingImportPreview.value = true;
+  errorMessage.value = "";
+
+  try {
+    const response = await fetchImportPreview(recipeId);
+    importDraft.value = response.draft;
+  } catch (error) {
+    errorMessage.value =
+      error instanceof Error ? error.message : "Unable to preview import";
+  } finally {
+    isLoadingImportPreview.value = false;
+  }
+}
+
+function addDraftIngredient() {
+  if (!importDraft.value) {
+    return;
+  }
+
+  importDraft.value.ingredients.push({
+    name: "",
+    amount: 1,
+    amount_type: "dash",
+  });
+}
+
+function removeDraftIngredient(index: number) {
+  importDraft.value?.ingredients.splice(index, 1);
+}
+
+function addDraftInstruction() {
+  if (!importDraft.value) {
+    return;
+  }
+
+  importDraft.value.instructions.push({
+    title: "",
+    steps: [""],
+  });
+}
+
+function removeDraftInstruction(index: number) {
+  importDraft.value?.instructions.splice(index, 1);
+}
+
+function addDraftStep(instruction: ImportedInstructionDraft) {
+  instruction.steps.push("");
+}
+
+function removeDraftStep(instruction: ImportedInstructionDraft, index: number) {
+  instruction.steps.splice(index, 1);
+}
+
+function normalizeDraft(draft: RecipeImportDraft): RecipeImportDraft {
+  const ingredients: ImportedIngredientDraft[] = draft.ingredients
+    .map((ingredient) => ({
+      name: ingredient.name.trim(),
+      amount: ingredient.amount,
+      amount_type: ingredient.amount_type,
+    }))
+    .filter((ingredient) => ingredient.name);
+
+  const instructions: ImportedInstructionDraft[] = draft.instructions
+    .map((instruction) => ({
+      title: instruction.title.trim(),
+      steps: instruction.steps.map((step) => step.trim()).filter(Boolean),
+    }))
+    .filter((instruction) => instruction.title || instruction.steps.length > 0)
+    .map((instruction) => ({
+      title: instruction.title || "Instruction",
+      steps: instruction.steps,
+    }));
+
+  return {
+    ingredients,
+    instructions,
+  };
+}
+
+async function applyDraft() {
+  const recipeId = route.params.recipeId;
+  if (typeof recipeId !== "string" || !importDraft.value) {
+    return;
+  }
+
+  isApplyingImportDraft.value = true;
+  errorMessage.value = "";
+
+  try {
+    await applyImportDraft(recipeId, normalizeDraft(importDraft.value));
+    importDraft.value = null;
+    await loadRecipe();
+  } catch (error) {
+    errorMessage.value =
+      error instanceof Error ? error.message : "Unable to save imported data";
+  } finally {
+    isApplyingImportDraft.value = false;
+  }
+}
+
 onMounted(loadRecipe);
 </script>
 
@@ -215,6 +332,98 @@ onMounted(loadRecipe);
         >
           {{ isDeletingRecipe ? "Deleting..." : "Delete recipe" }}
         </button>
+        <button
+          v-if="recipe.inspiration_url"
+          type="button"
+          :disabled="isLoadingImportPreview"
+          @click="loadImportPreview"
+        >
+          {{ isLoadingImportPreview ? "Importing..." : "Preview import from URL" }}
+        </button>
+      </div>
+
+      <div v-if="importDraft" class="versions-card">
+        <div class="versions-header">
+          <h3>Import review</h3>
+          <button type="button" @click="addDraftIngredient">Add ingredient</button>
+        </div>
+
+        <div
+          v-for="(ingredient, ingredientIndex) in importDraft.ingredients"
+          :key="`ingredient-${ingredientIndex}`"
+          class="draft-row"
+        >
+          <input v-model="ingredient.name" type="text" placeholder="Ingredient name" />
+          <input v-model.number="ingredient.amount" min="1" type="number" />
+          <select v-model="ingredient.amount_type">
+            <option
+              v-for="amountType in amountTypes"
+              :key="`draft-amount-${amountType}`"
+              :value="amountType"
+            >
+              {{ amountType }}
+            </option>
+          </select>
+          <button
+            type="button"
+            class="danger-button"
+            @click="removeDraftIngredient(ingredientIndex)"
+          >
+            Remove
+          </button>
+        </div>
+
+        <div class="versions-header">
+          <h3>Instructions</h3>
+          <button type="button" @click="addDraftInstruction">Add instruction</button>
+        </div>
+
+        <div
+          v-for="(instruction, instructionIndex) in importDraft.instructions"
+          :key="`instruction-${instructionIndex}`"
+          class="instruction-card"
+        >
+          <div class="draft-row">
+            <input
+              v-model="instruction.title"
+              type="text"
+              placeholder="Instruction title"
+            />
+            <button
+              type="button"
+              class="danger-button"
+              @click="removeDraftInstruction(instructionIndex)"
+            >
+              Remove
+            </button>
+          </div>
+
+          <div
+            v-for="(step, stepIndex) in instruction.steps"
+            :key="`step-${instructionIndex}-${stepIndex}`"
+            class="draft-row"
+          >
+            <input v-model="instruction.steps[stepIndex]" type="text" placeholder="Step" />
+            <button
+              type="button"
+              class="danger-button"
+              @click="removeDraftStep(instruction, stepIndex)"
+            >
+              Remove step
+            </button>
+          </div>
+
+          <button type="button" @click="addDraftStep(instruction)">Add step</button>
+        </div>
+
+        <div class="draft-actions">
+          <button type="button" :disabled="isApplyingImportDraft" @click="applyDraft">
+            {{ isApplyingImportDraft ? "Saving..." : "Save imported data" }}
+          </button>
+          <button type="button" class="danger-button" @click="importDraft = null">
+            Cancel
+          </button>
+        </div>
       </div>
 
       <div v-if="activeVersion" class="versions-card">
@@ -415,6 +624,18 @@ button:disabled {
 }
 
 .instruction-card + .instruction-card {
+  margin-top: 20px;
+}
+
+.draft-row {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.draft-actions {
+  display: flex;
+  gap: 12px;
   margin-top: 20px;
 }
 

@@ -77,21 +77,45 @@ def create_recipe():
         payload["inspiration_url"],
     )
 
-    import_error = None
-    if payload["inspiration_url"]:
-        try:
-            import_payload = import_recipe_from_url(payload["inspiration_url"])
-            recipe_queries.populate_recipe_version_from_import(
-                result["version"]["id"],
-                import_payload,
-            )
-        except Exception as exc:
-            import_error = str(exc)
-
-    if import_error is not None:
-        result["import_error"] = import_error
-
     return jsonify(result), 201
+
+
+@app.post("/api/recipes/<recipe_id>/import-preview")
+def import_preview(recipe_id):
+    recipe = recipe_queries.get_recipe(recipe_id)
+    if recipe is None:
+        return {"error": "recipe not found"}, 404
+
+    if not recipe["inspiration_url"]:
+        return {"error": "recipe does not have an inspiration_url"}, 400
+
+    import_payload = import_recipe_from_url(recipe["inspiration_url"])
+    active_version = recipe_queries.get_active_version(recipe_id)
+    if active_version is None:
+        return {"error": "recipe not found"}, 404
+
+    return jsonify(
+        {
+            "draft": import_payload,
+            "active_version": active_version,
+        }
+    )
+
+
+@app.post("/api/recipes/<recipe_id>/import-apply")
+def import_apply(recipe_id):
+    payload = request.get_json(silent=True) or {}
+    draft = payload.get("draft")
+
+    if not isinstance(draft, dict):
+        return {"error": "draft is required"}, 400
+
+    active_version = recipe_queries.get_active_version(recipe_id)
+    if active_version is None:
+        return {"error": "recipe not found"}, 404
+
+    recipe_queries.populate_recipe_version_from_import(active_version["id"], draft)
+    return "", 204
 
 
 @app.post("/api/recipes/<recipe_id>/instructions")

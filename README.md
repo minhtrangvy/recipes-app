@@ -65,4 +65,4 @@ Vite proxies `/api` requests to `http://127.0.0.1:5000`.
 
 Ingredients are attached to `recipe_version_id` and currently store a minimal `name` field so the active version can be edited in the UI.
 
-If a recipe is created with an `inspiration_url` and `OPENAI_API_KEY` is available, the backend will try to fetch the page, send the page text to OpenAI, and populate ingredients/instructions/steps into version 1.
+If a recipe has an `inspiration_url` and `OPENAI_API_KEY` is available, the backend can fetch the page, send the page text to OpenAI, and return an editable import preview for ingredients/instructions/steps before anything is saved into version 1.

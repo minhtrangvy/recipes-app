@@ -2,6 +2,8 @@ import type {
   CreateRecipePayload,
   Ingredient,
   IngredientAmountType,
+  ImportedInstructionDraft,
+  RecipeImportDraft,
   Instruction,
   RecipeDetail,
   RecipeSummary,
@@ -51,6 +53,44 @@ export async function createRecipe(
   return parseResponse<{ recipe: RecipeSummary; version: RecipeVersionSummary }>(
     response
   );
+}
+
+export async function fetchImportPreview(
+  recipeId: string
+): Promise<{ draft: RecipeImportDraft; active_version: RecipeVersionSummary }> {
+  const response = await fetch(`/api/recipes/${recipeId}/import-preview`, {
+    method: "POST",
+  });
+  return parseResponse<{
+    draft: RecipeImportDraft;
+    active_version: RecipeVersionSummary;
+  }>(response);
+}
+
+export async function applyImportDraft(
+  recipeId: string,
+  draft: RecipeImportDraft
+): Promise<void> {
+  const normalizedInstructions: ImportedInstructionDraft[] = draft.instructions.map(
+    (instruction) => ({
+      title: instruction.title,
+      steps: instruction.steps,
+    })
+  );
+
+  const response = await fetch(`/api/recipes/${recipeId}/import-apply`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      draft: {
+        ingredients: draft.ingredients,
+        instructions: normalizedInstructions,
+      },
+    }),
+  });
+  await parseResponse(response);
 }
 
 export async function createRecipeVersion(

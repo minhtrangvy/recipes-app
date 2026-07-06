@@ -227,6 +227,22 @@ def create_recipe(name, category, inspiration_url):
 def populate_recipe_version_from_import(version_id, import_payload):
     with get_connection() as connection:
         with connection.cursor() as cursor:
+            cursor.execute(
+                """
+                delete from ingredients
+                where recipe_version_id = %s
+                """,
+                (version_id,),
+            )
+
+            cursor.execute(
+                """
+                delete from instructions
+                where recipe_version_id = %s
+                """,
+                (version_id,),
+            )
+
             for ingredient in import_payload.get("ingredients", []):
                 cursor.execute(
                     """
@@ -262,6 +278,34 @@ def populate_recipe_version_from_import(version_id, import_payload):
                     )
 
         connection.commit()
+
+
+def get_active_version(recipe_id):
+    with get_connection() as connection:
+        with connection.cursor() as cursor:
+            cursor.execute(
+                """
+                select
+                    rv.id,
+                    rv.recipe_id,
+                    rv.version_number,
+                    rv.created_at
+                from recipe_versions rv
+                inner join recipes r on r.id = rv.recipe_id
+                where rv.recipe_id = %s
+                    and rv.deleted_at is null
+                    and r.deleted_at is null
+                order by rv.version_number desc
+                limit 1
+                """,
+                (recipe_id,),
+            )
+            version = cursor.fetchone()
+
+    if version is None:
+        return None
+
+    return serialize_recipe_version_row(version)
 
 
 def create_recipe_version(recipe_id):
