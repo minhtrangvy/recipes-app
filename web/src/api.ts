@@ -1,6 +1,7 @@
 import type {
   CreateRecipePayload,
   Ingredient,
+  IngredientAmountType,
   RecipeDetail,
   RecipeSummary,
   RecipeVersion,
@@ -62,14 +63,14 @@ export async function createRecipeVersion(
 
 export async function createIngredient(
   recipeId: string,
-  name: string
+  payload: { name: string; amount: number; amount_type: IngredientAmountType }
 ): Promise<{ ingredient: Ingredient; active_version: RecipeVersionSummary }> {
   const response = await fetch(`/api/recipes/${recipeId}/ingredients`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
     },
-    body: JSON.stringify({ name }),
+    body: JSON.stringify(payload),
   });
   return parseResponse<{
     ingredient: Ingredient;

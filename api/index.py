@@ -12,6 +12,14 @@ CATEGORIES = (
     "mocktail",
 )
 
+AMOUNT_TYPES = (
+    "cup",
+    "teaspoon",
+    "tablespoon",
+    "dash",
+    "weight_g",
+)
+
 app = Flask(__name__)
 
 
@@ -83,10 +91,24 @@ def create_recipe_version(recipe_id):
 def create_ingredient(recipe_id):
     payload = request.get_json(silent=True) or {}
     name = (payload.get("name") or "").strip()
+    amount = payload.get("amount")
+    amount_type = payload.get("amount_type")
+
     if not name:
         return {"error": "name is required"}, 400
 
-    result, error = recipe_queries.create_ingredient(recipe_id, name)
+    if not isinstance(amount, int) or amount <= 0:
+        return {"error": "amount must be a positive integer"}, 400
+
+    if amount_type not in AMOUNT_TYPES:
+        return {"error": "amount_type is invalid"}, 400
+
+    result, error = recipe_queries.create_ingredient(
+        recipe_id,
+        name,
+        amount,
+        amount_type,
+    )
     if error is not None:
         return {"error": error}, 404
 

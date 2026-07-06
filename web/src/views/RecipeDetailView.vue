@@ -8,7 +8,7 @@ import {
   deleteRecipeVersion,
   fetchRecipe,
 } from "../api";
-import type { RecipeDetail } from "../types";
+import type { IngredientAmountType, RecipeDetail } from "../types";
 
 const route = useRoute();
 const recipe = ref<RecipeDetail | null>(null);
@@ -18,6 +18,16 @@ const isCreatingVersion = ref(false);
 const isSavingIngredient = ref(false);
 const deletingVersionId = ref("");
 const ingredientName = ref("");
+const ingredientAmount = ref(1);
+const ingredientAmountType = ref<IngredientAmountType>("dash");
+
+const amountTypes: IngredientAmountType[] = [
+  "cup",
+  "teaspoon",
+  "tablespoon",
+  "dash",
+  "weight_g",
+];
 
 const activeVersion = computed(() => recipe.value?.versions[0] ?? null);
 
@@ -42,7 +52,7 @@ async function loadRecipe() {
 async function addIngredient() {
   const recipeId = route.params.recipeId;
   const name = ingredientName.value.trim();
-  if (typeof recipeId !== "string" || !name) {
+  if (typeof recipeId !== "string" || !name || ingredientAmount.value <= 0) {
     return;
   }
 
@@ -50,8 +60,14 @@ async function addIngredient() {
   errorMessage.value = "";
 
   try {
-    await createIngredient(recipeId, name);
+    await createIngredient(recipeId, {
+      name,
+      amount: ingredientAmount.value,
+      amount_type: ingredientAmountType.value,
+    });
     ingredientName.value = "";
+    ingredientAmount.value = 1;
+    ingredientAmountType.value = "dash";
     await loadRecipe();
   } catch (error) {
     errorMessage.value =
@@ -131,6 +147,21 @@ onMounted(loadRecipe);
             type="text"
             placeholder="Add ingredient"
           />
+          <input
+            v-model.number="ingredientAmount"
+            min="1"
+            type="number"
+            placeholder="Amount"
+          />
+          <select v-model="ingredientAmountType">
+            <option
+              v-for="amountType in amountTypes"
+              :key="amountType"
+              :value="amountType"
+            >
+              {{ amountType }}
+            </option>
+          </select>
           <button type="submit">
             {{ isSavingIngredient ? "Saving..." : "Add ingredient" }}
           </button>
@@ -139,7 +170,7 @@ onMounted(loadRecipe);
         <p v-if="activeVersion.ingredients.length === 0">No ingredients yet.</p>
         <ul v-else>
           <li v-for="ingredient in activeVersion.ingredients" :key="ingredient.id">
-            {{ ingredient.name }}
+            {{ ingredient.amount }} {{ ingredient.amount_type }} {{ ingredient.name }}
           </li>
         </ul>
       </div>
@@ -212,11 +243,13 @@ onMounted(loadRecipe);
 }
 
 input,
+select,
 button {
   font: inherit;
 }
 
-input {
+input,
+select {
   flex: 1;
   padding: 10px 12px;
   border: 1px solid #a99987;

@@ -19,6 +19,24 @@ begin
 end
 $$;
 
+do $$
+begin
+    if not exists (
+        select 1
+        from pg_type
+        where typname = 'ingredient_amount_type'
+    ) then
+        create type ingredient_amount_type as enum (
+            'cup',
+            'teaspoon',
+            'tablespoon',
+            'dash',
+            'weight_g'
+        );
+    end if;
+end
+$$;
+
 create table if not exists recipes (
     id uuid primary key default gen_random_uuid(),
     name text not null,
@@ -39,11 +57,19 @@ create table if not exists ingredients (
     id uuid primary key default gen_random_uuid(),
     recipe_version_id uuid not null references recipe_versions(id) on delete cascade,
     name text not null,
+    amount integer not null default 1,
+    amount_type ingredient_amount_type not null default 'dash',
     created_at timestamptz not null default now()
 );
 
 alter table ingredients
     add column if not exists name text;
+
+alter table ingredients
+    add column if not exists amount integer;
+
+alter table ingredients
+    add column if not exists amount_type ingredient_amount_type;
 
 alter table ingredients
     add column if not exists created_at timestamptz not null default now();
@@ -52,5 +78,19 @@ update ingredients
 set name = 'ingredient'
 where name is null;
 
+update ingredients
+set amount = 1
+where amount is null;
+
+update ingredients
+set amount_type = 'dash'
+where amount_type is null;
+
 alter table ingredients
     alter column name set not null;
+
+alter table ingredients
+    alter column amount set not null;
+
+alter table ingredients
+    alter column amount_type set not null;

@@ -6,6 +6,13 @@ export type RecipeCategory =
   | "cocktail"
   | "mocktail";
 
+export type IngredientAmountType =
+  | "cup"
+  | "teaspoon"
+  | "tablespoon"
+  | "dash"
+  | "weight_g";
+
 export interface RecipeSummary {
   id: string;
   name: string;
@@ -35,6 +42,8 @@ export interface Ingredient {
   id: string;
   recipe_version_id: string;
   name: string;
+  amount: number;
+  amount_type: IngredientAmountType;
   created_at: string;
 }
 

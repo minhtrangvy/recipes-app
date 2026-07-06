@@ -17,6 +17,8 @@ def serialize_ingredient_row(row):
         "id": str(row["id"]),
         "recipe_version_id": str(row["recipe_version_id"]),
         "name": row["name"],
+        "amount": row["amount"],
+        "amount_type": row["amount_type"],
         "created_at": row["created_at"].isoformat(),
     }
 
@@ -99,6 +101,8 @@ def get_recipe(recipe_id):
                         id,
                         recipe_version_id,
                         name,
+                        amount,
+                        amount_type,
                         created_at
                     from ingredients
                     where recipe_version_id = %s
@@ -205,8 +209,8 @@ def create_recipe_version(recipe_id):
             if latest_version_id is not None:
                 cursor.execute(
                     """
-                    insert into ingredients (recipe_version_id, name)
-                    select %s, name
+                    insert into ingredients (recipe_version_id, name, amount, amount_type)
+                    select %s, name, amount, amount_type
                     from ingredients
                     where recipe_version_id = %s
                     order by created_at asc, id asc
@@ -219,7 +223,7 @@ def create_recipe_version(recipe_id):
     return serialize_recipe_version_row(version), None
 
 
-def create_ingredient(recipe_id, name):
+def create_ingredient(recipe_id, name, amount, amount_type):
     with get_connection() as connection:
         with connection.cursor() as cursor:
             cursor.execute(
@@ -243,11 +247,11 @@ def create_ingredient(recipe_id, name):
 
             cursor.execute(
                 """
-                insert into ingredients (recipe_version_id, name)
-                values (%s, %s)
-                returning id, recipe_version_id, name, created_at
+                insert into ingredients (recipe_version_id, name, amount, amount_type)
+                values (%s, %s, %s, %s)
+                returning id, recipe_version_id, name, amount, amount_type, created_at
                 """,
-                (active_version["id"], name),
+                (active_version["id"], name, amount, amount_type),
             )
             ingredient = cursor.fetchone()
 
