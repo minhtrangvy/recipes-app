@@ -154,6 +154,16 @@ export async function createInstruction(
   }>(response);
 }
 
+export async function deleteInstruction(
+  recipeId: string,
+  instructionId: string
+): Promise<void> {
+  const response = await fetch(`/api/recipes/${recipeId}/instructions/${instructionId}`, {
+    method: "DELETE",
+  });
+  await parseResponse(response);
+}
+
 export async function createStep(
   recipeId: string,
   instructionId: string,

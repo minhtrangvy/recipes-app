@@ -36,7 +36,7 @@ def serialize_instruction_row(row):
     return {
         "id": str(row["id"]),
         "recipe_version_id": str(row["recipe_version_id"]),
-        "title": row["title"],
+        "title": row["title"] or "",
         "created_at": row["created_at"].isoformat(),
     }
 
@@ -478,7 +478,7 @@ def create_instruction(recipe_id, title):
                 values (%s, %s)
                 returning id, recipe_version_id, title, created_at
                 """,
-                (active_version["id"], title),
+                (active_version["id"], title or None),
             )
             instruction = cursor.fetchone()
 
@@ -537,6 +537,36 @@ def create_step(recipe_id, instruction_id, body):
         connection.commit()
 
     return {"step": serialize_step_row(step)}, None
+
+
+def delete_instruction(recipe_id, instruction_id):
+    with get_connection() as connection:
+        with connection.cursor() as cursor:
+            cursor.execute(
+                """
+                delete from instructions
+                where id = %s
+                    and exists (
+                        select 1
+                        from recipe_versions rv
+                        inner join recipes r on r.id = rv.recipe_id
+                        where rv.id = instructions.recipe_version_id
+                            and rv.recipe_id = %s
+                            and rv.deleted_at is null
+                            and r.deleted_at is null
+                    )
+                returning id
+                """,
+                (instruction_id, recipe_id),
+            )
+            deleted_instruction = cursor.fetchone()
+
+            if deleted_instruction is None:
+                return "instruction not found"
+
+        connection.commit()
+
+    return None
 
 
 def delete_step(recipe_id, instruction_id, step_id):

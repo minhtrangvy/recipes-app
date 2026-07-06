@@ -94,7 +94,7 @@ def normalize_import_payload(payload: dict[str, Any]) -> dict[str, Any]:
 
     instructions = []
     for instruction in payload.get("instructions", []):
-        title = str(instruction.get("title", "")).strip() or "Instruction"
+        title = str(instruction.get("title", "")).strip()
         raw_steps = instruction.get("steps", [])
         steps = [str(step).strip() for step in raw_steps if str(step).strip()]
         instructions.append(

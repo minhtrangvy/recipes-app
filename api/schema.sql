@@ -154,7 +154,7 @@ alter table ingredients
 create table if not exists instructions (
     id uuid primary key default gen_random_uuid(),
     recipe_version_id uuid not null references recipe_versions(id) on delete cascade,
-    title text not null,
+    title text null,
     created_at timestamptz not null default now()
 );
 
@@ -167,9 +167,6 @@ alter table instructions
 update instructions
 set title = 'Instruction'
 where title is null;
-
-alter table instructions
-    alter column title set not null;
 
 create table if not exists steps (
     id uuid primary key default gen_random_uuid(),

@@ -7,6 +7,7 @@ import {
   applyImportDraft,
   fetchImportPreview,
   deleteRecipe,
+  deleteInstruction,
   deleteStep,
   createIngredient,
   createInstruction,
@@ -34,9 +35,9 @@ const deletingVersionId = ref("");
 const isDeletingRecipe = ref(false);
 const ingredientName = ref("");
 const ingredientAmount = ref(1);
-const ingredientAmountType = ref<IngredientAmountType>("dash");
 const instructionTitle = ref("");
 const isSavingInstruction = ref(false);
+const deletingInstructionId = ref("");
 const stepBodies = ref<Record<string, string>>({});
 const savingStepInstructionId = ref("");
 const deletingStepId = ref("");
@@ -54,6 +55,8 @@ const amountTypes: IngredientAmountType[] = [
   "to taste",
   "weight_g",
 ];
+
+const ingredientAmountType = ref<IngredientAmountType>(amountTypes[0]);
 
 const activeVersion = computed(() => recipe.value?.versions[0] ?? null);
 
@@ -114,7 +117,7 @@ async function addIngredient() {
     });
     ingredientName.value = "";
     ingredientAmount.value = 1;
-    ingredientAmountType.value = "dash";
+    ingredientAmountType.value = amountTypes[0];
     await loadRecipe();
   } catch (error) {
     errorMessage.value =
@@ -146,7 +149,7 @@ async function addVersion() {
 async function addInstruction() {
   const recipeId = route.params.recipeId;
   const title = instructionTitle.value.trim();
-  if (typeof recipeId !== "string" || !title) {
+  if (typeof recipeId !== "string") {
     return;
   }
 
@@ -162,6 +165,26 @@ async function addInstruction() {
       error instanceof Error ? error.message : "Unable to add instruction";
   } finally {
     isSavingInstruction.value = false;
+  }
+}
+
+async function removeInstruction(instructionId: string) {
+  const recipeId = route.params.recipeId;
+  if (typeof recipeId !== "string") {
+    return;
+  }
+
+  deletingInstructionId.value = instructionId;
+  errorMessage.value = "";
+
+  try {
+    await deleteInstruction(recipeId, instructionId);
+    await loadRecipe();
+  } catch (error) {
+    errorMessage.value =
+      error instanceof Error ? error.message : "Unable to delete instruction";
+  } finally {
+    deletingInstructionId.value = "";
   }
 }
 
@@ -529,7 +552,7 @@ onMounted(loadRecipe);
           <input
             v-model="instructionTitle"
             type="text"
-            placeholder="Instruction title"
+            placeholder="Instruction title (optional)"
           />
           <button type="submit">
             {{ isSavingInstruction ? "Saving..." : "Add instruction" }}
@@ -543,7 +566,21 @@ onMounted(loadRecipe);
           :key="instruction.id"
           class="instruction-card"
         >
-          <h4>{{ instruction.title }}</h4>
+          <div class="instruction-header">
+            <h4>{{ instruction.title || "Untitled instruction" }}</h4>
+            <button
+              type="button"
+              class="danger-button"
+              :disabled="deletingInstructionId !== ''"
+              @click="removeInstruction(instruction.id)"
+            >
+              {{
+                deletingInstructionId === instruction.id
+                  ? "Deleting..."
+                  : "Delete instruction"
+              }}
+            </button>
+          </div>
           <ol v-if="instruction.steps.length > 0">
             <li v-for="step in instruction.steps" :key="step.id">
               <div class="step-row">
@@ -689,6 +726,13 @@ button:disabled {
 
 .instruction-card + .instruction-card {
   margin-top: 20px;
+}
+
+.instruction-header {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  align-items: center;
 }
 
 .draft-row {

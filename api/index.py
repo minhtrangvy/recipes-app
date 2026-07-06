@@ -115,14 +115,21 @@ def import_apply(recipe_id):
 def create_instruction(recipe_id):
     payload = request.get_json(silent=True) or {}
     title = (payload.get("title") or "").strip()
-    if not title:
-        return {"error": "title is required"}, 400
 
     result, error = recipe_queries.create_instruction(recipe_id, title)
     if error is not None:
         return {"error": error}, 404
 
     return jsonify(result), 201
+
+
+@app.delete("/api/recipes/<recipe_id>/instructions/<instruction_id>")
+def delete_instruction(recipe_id, instruction_id):
+    error = recipe_queries.delete_instruction(recipe_id, instruction_id)
+    if error is not None:
+        return {"error": error}, 404
+
+    return "", 204
 
 
 @app.post("/api/recipes/<recipe_id>/instructions/<instruction_id>/steps")
