@@ -741,14 +741,24 @@ onMounted(loadRecipe);
                         {{ amountTypeLabel(ingredient.amount_type) }}
                         {{ ingredient.name }}
                       </p>
-                      <button
-                        type="button"
-                        class="icon-button"
-                        aria-label="Edit ingredient"
-                        @click="beginIngredientEdit(ingredient)"
-                      >
-                        ✎
-                      </button>
+                      <div class="item-actions">
+                        <button
+                          v-if="!showingIngredientNoteForms[ingredient.id]"
+                          type="button"
+                          class="icon-button compact-button"
+                          @click="showIngredientNoteForm(ingredient.id)"
+                        >
+                          Add note
+                        </button>
+                        <button
+                          type="button"
+                          class="icon-button"
+                          aria-label="Edit ingredient"
+                          @click="beginIngredientEdit(ingredient)"
+                        >
+                          ✎
+                        </button>
+                      </div>
                     </div>
                     <div v-if="ingredient.notes.length > 0" class="note-stack">
                       <div
@@ -759,13 +769,6 @@ onMounted(loadRecipe);
                         Important note: {{ note.body }}
                       </div>
                     </div>
-                    <button
-                      v-if="!showingIngredientNoteForms[ingredient.id]"
-                      type="button"
-                      @click="showIngredientNoteForm(ingredient.id)"
-                    >
-                      Add note
-                    </button>
                     <form
                       v-else
                       class="note-form"
@@ -1011,7 +1014,7 @@ select {
 button {
   padding: 10px 16px;
   border: 0;
-  background: #1e1a16;
+  background: #8f6d50;
   color: white;
   cursor: pointer;
 }
@@ -1083,13 +1086,18 @@ button:disabled {
 .icon-button {
   padding: 4px 8px;
   background: transparent;
-  color: #1e1a16;
+  color: #6f5036;
   border: 1px solid #a99987;
 }
 
 .danger-icon-button {
   color: white;
   border-color: #8c2f1d;
+}
+
+.compact-button {
+  font-size: 12px;
+  line-height: 1.2;
 }
 
 .item-with-note {
@@ -1101,6 +1109,12 @@ button:disabled {
   display: flex;
   justify-content: space-between;
   gap: 12px;
+  align-items: center;
+}
+
+.item-actions {
+  display: flex;
+  gap: 8px;
   align-items: center;
 }
 
