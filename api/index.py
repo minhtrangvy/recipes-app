@@ -1,6 +1,7 @@
 from flask import Flask, jsonify, request
 
 from api.queries import recipes as recipe_queries
+from api.services.inspiration_import import import_recipe_from_url
 
 
 CATEGORIES = (
@@ -75,6 +76,21 @@ def create_recipe():
         payload["category"],
         payload["inspiration_url"],
     )
+
+    import_error = None
+    if payload["inspiration_url"]:
+        try:
+            import_payload = import_recipe_from_url(payload["inspiration_url"])
+            recipe_queries.populate_recipe_version_from_import(
+                result["version"]["id"],
+                import_payload,
+            )
+        except Exception as exc:
+            import_error = str(exc)
+
+    if import_error is not None:
+        result["import_error"] = import_error
+
     return jsonify(result), 201
 
 

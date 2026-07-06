@@ -224,6 +224,46 @@ def create_recipe(name, category, inspiration_url):
     }
 
 
+def populate_recipe_version_from_import(version_id, import_payload):
+    with get_connection() as connection:
+        with connection.cursor() as cursor:
+            for ingredient in import_payload.get("ingredients", []):
+                cursor.execute(
+                    """
+                    insert into ingredients (recipe_version_id, name, amount, amount_type)
+                    values (%s, %s, %s, %s)
+                    """,
+                    (
+                        version_id,
+                        ingredient["name"],
+                        ingredient["amount"],
+                        ingredient["amount_type"],
+                    ),
+                )
+
+            for instruction in import_payload.get("instructions", []):
+                cursor.execute(
+                    """
+                    insert into instructions (recipe_version_id, title)
+                    values (%s, %s)
+                    returning id
+                    """,
+                    (version_id, instruction["title"]),
+                )
+                instruction_id = cursor.fetchone()["id"]
+
+                for index, step_body in enumerate(instruction.get("steps", []), start=1):
+                    cursor.execute(
+                        """
+                        insert into steps (instruction_id, step_number, body)
+                        values (%s, %s, %s)
+                        """,
+                        (instruction_id, index, step_body),
+                    )
+
+        connection.commit()
+
+
 def create_recipe_version(recipe_id):
     with get_connection() as connection:
         with connection.cursor() as cursor:
