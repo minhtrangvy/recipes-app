@@ -530,7 +530,7 @@ def create_instruction(recipe_id, title):
                 values (%s, %s)
                 returning id, recipe_version_id, title, created_at
                 """,
-                (active_version["id"], title or None),
+                (active_version["id"], title or ""),
             )
             instruction = cursor.fetchone()
 
